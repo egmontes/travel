@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 Travel Tracker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f5f5f4;
+    --bg-tertiary: #eeede8;
+    --text: #1a1a18;
+    --text-secondary: #5f5e5a;
+    --text-tertiary: #888780;
+    --border: rgba(0,0,0,0.12);
+    --border-secondary: rgba(0,0,0,0.22);
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --green-bg: #eaf3de; --green-text: #3b6d11;
+    --teal-bg: #e1f5ee; --teal-text: #0f6e56;
+    --amber-bg: #faeeda; --amber-text: #854f0b;
+    --gray-bg: #f1efe8; --gray-text: #5f5e5a;
+    --danger-bg: #fcebeb; --danger-text: #a32d2d;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --bg-secondary: #252523;
+      --bg-tertiary: #2e2e2b;
+      --text: #f0ede6;
+      --text-secondary: #a8a79f;
+      --text-tertiary: #6e6d68;
+      --border: rgba(255,255,255,0.1);
+      --border-secondary: rgba(255,255,255,0.18);
+      --green-bg: #1a2e0d; --green-text: #97c459;
+      --teal-bg: #0a2a1f; --teal-text: #5dcaa5;
+      --amber-bg: #2a1e08; --amber-text: #ef9f27;
+      --gray-bg: #2a2a27; --gray-text: #b4b2a9;
+      --danger-bg: #2a1010; --danger-text: #f09595;
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg-tertiary);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 1.75rem;
+  }
+
+  h1 {
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+
+  .page-sub {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 3px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 1.75rem;
+  }
+
+  .stat {
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .stat-value.green { color: var(--green-text); }
+  .stat-value.amber { color: var(--amber-text); }
+
+  .trip-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .trip-card {
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .trip-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+
+  .trip-header:hover { background: var(--bg-secondary); }
+
+  .month-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .trip-meta { flex: 1; min-width: 0; }
+
+  .trip-name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .trip-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .past-trip .trip-name { color: var(--text-secondary); }
+
+  .past-badge {
+    font-size: 11px;
+    background: var(--bg-secondary);
+    color: var(--text-tertiary);
+    border-radius: 4px;
+    padding: 2px 6px;
+  }
+
+  .trip-date-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .progress-bar {
+    width: 56px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+
+  .progress-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+    min-width: 28px;
+    text-align: right;
+  }
+
+  .btn {
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    border: 0.5px solid var(--border-secondary);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+
+  .btn:hover { background: var(--bg-secondary); }
+  .btn:active { transform: scale(0.98); }
+
+  .btn-primary {
+    background: var(--text);
+    color: var(--bg);
+    border-color: transparent;
+    font-weight: 500;
+  }
+
+  .btn-primary:hover { opacity: 0.85; background: var(--text); }
+
+  .btn-sm { font-size: 12px; padding: 4px 10px; }
+
+  .chevron {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-left: 2px;
+    transition: transform 0.2s;
+    display: inline-block;
+  }
+
+  .trip-items { border-top: 0.5px solid var(--border); }
+
+  .col-header {
+    display: grid;
+    grid-template-columns: 1fr 150px 1fr;
+    gap: 12px;
+    padding: 7px 16px;
+    background: var(--bg-secondary);
+  }
+
+  .col-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+  }
+
+  .item-row {
+    display: grid;
+    grid-template-columns: 1fr 150px 1fr;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-top: 0.5px solid var(--border);
+  }
+
+  .item-name { font-size: 14px; color: var(--text); }
+  .item-date-lbl { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+  .item-details-lbl { font-size: 13px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .status-select {
+    font-size: 13px;
+    border: 0.5px solid var(--border-secondary);
+    border-radius: var(--radius-md);
+    padding: 5px 8px;
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+    width: 100%;
+    font-family: inherit;
+  }
+
+  /* Modal */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 1000;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px;
+    overflow-y: auto;
+  }
+
+  .modal-backdrop.open { display: flex; }
+
+  .modal {
+    background: var(--bg);
+    border: 0.5px solid var(--border-secondary);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 620px;
+    overflow: hidden;
+    margin: auto;
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .modal-title { font-size: 16px; font-weight: 500; }
+
+  .modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 20px;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .modal-close:hover { background: var(--bg-secondary); color: var(--text); }
+
+  .modal-body { padding: 20px; }
+
+  .field-group { margin-bottom: 14px; }
+  .field-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 5px; display: block; }
+
+  .field-input {
+    font-size: 14px;
+    border: 0.5px solid var(--border-secondary);
+    border-radius: var(--radius-md);
+    padding: 8px 10px;
+    background: var(--bg);
+    color: var(--text);
+    width: 100%;
+    font-family: inherit;
+  }
+
+  .field-input:focus { outline: none; border-color: var(--text-secondary); }
+
+  .trip-fields-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .section-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+    margin: 20px 0 10px;
+  }
+
+  .section-label:first-child { margin-top: 0; }
+
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .items-table th {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 6px 8px;
+    text-align: left;
+    border-bottom: 0.5px solid var(--border);
+    font-weight: 500;
+  }
+
+  .items-table td {
+    padding: 5px 4px;
+    vertical-align: middle;
+  }
+
+  .items-table tr:not(:last-child) td { border-bottom: 0.5px solid var(--border); }
+
+  .table-input {
+    font-size: 13px;
+    border: 0.5px solid var(--border-secondary);
+    border-radius: var(--radius-md);
+    padding: 5px 7px;
+    background: var(--bg);
+    color: var(--text);
+    width: 100%;
+    font-family: inherit;
+  }
+
+  .table-input:focus { outline: none; border-color: var(--text-secondary); }
+
+  .table-select {
+    font-size: 13px;
+    border: 0.5px solid var(--border-secondary);
+    border-radius: var(--radius-md);
+    padding: 5px 6px;
+    background: var(--bg);
+    color: var(--text);
+    width: 100%;
+    font-family: inherit;
+  }
+
+  .del-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    font-size: 18px;
+    padding: 2px 6px;
+    line-height: 1;
+    border-radius: 4px;
+    font-family: inherit;
+  }
+
+  .del-btn:hover { color: var(--danger-text); background: var(--danger-bg); }
+
+  .add-row-btn {
+    font-size: 13px;
+    padding: 7px 12px;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 0.5px dashed var(--border-secondary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    width: 100%;
+    margin-top: 10px;
+    text-align: center;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+
+  .add-row-btn:hover { background: var(--bg-secondary); }
+
+  .modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-top: 0.5px solid var(--border);
+    gap: 8px;
+  }
+
+  .modal-footer-right { display: flex; gap: 8px; }
+
+  .del-trip-btn {
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    border: 0.5px solid var(--border-secondary);
+    background: transparent;
+    color: var(--danger-text);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+
+  .del-trip-btn:hover { background: var(--danger-bg); }
+
+  /* Add trip modal */
+  .add-trip-area {
+    margin-top: 1.25rem;
+  }
+
+  .add-trip-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 12px;
+    border: 0.5px dashed var(--border-secondary);
+    border-radius: var(--radius-lg);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+
+  .add-trip-btn:hover { background: var(--bg-secondary); color: var(--text); }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--text);
+    color: var(--bg);
+    border-radius: var(--radius-md);
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+    z-index: 2000;
+  }
+
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 600px) {
+    .col-header, .item-row { grid-template-columns: 1fr; }
+    .col-header { display: none; }
+    .trip-fields-grid { grid-template-columns: 1fr; }
+    .items-table { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1>2026 Travel</h1>
+      <div class="page-sub">Track your trips and requirements</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn" onclick="expandAll()">Expand all</button>
+      <button class="btn" onclick="collapseAll()">Collapse all</button>
+      <button class="btn" onclick="exportCSV()">Export ↗</button>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+  <div class="trip-list" id="tripList"></div>
+
+  <div class="add-trip-area">
+    <button class="add-trip-btn" onclick="openAddTrip()">+ Add trip</button>
+  </div>
+</div>
+
+<!-- Edit / Add Trip Modal -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="handleBackdropClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">Edit trip</span>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <div>
+        <button class="del-trip-btn" id="delTripBtn" onclick="deleteTrip()">Delete trip</button>
+      </div>
+      <div class="modal-footer-right">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveModal()">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STATUSES = ['Booked', 'Confirmed', 'Not Booked', 'Not Confirmed'];
+const MONTH_COLORS = ['#378ADD','#E24B4A','#1D9E75','#D4537E','#639922','#0F6E56','#D85A30','#BA7517','#534AB7','#5F5E5A','#985EA5','#0C447C'];
+const TODAY = new Date(2026, 4, 6);
+
+const DEFAULT_TRIPS = [
+  {name:'Fiesta Bowl',date:'Jan 8',month:0,items:[
+    {name:'Inbound Flight',date:'Jan 7',status:'Booked',details:'JetBlue'},
+    {name:'Hotel',date:'Jan 7–9',status:'Booked',details:'3 nights'},
+    {name:'Tickets',date:'Jan 8',status:'Booked',details:''},
+    {name:'Outbound Flight',date:'Jan 9',status:'Booked',details:'American'}
+  ]},
+  {name:'Waste Mgmt + Super Bowl',date:'Feb 7',month:1,items:[
+    {name:'Inbound Flight',date:'Feb 5',status:'Booked',details:'American 4:52pm'},
+    {name:"Riley's House",date:'Feb 5–8',status:'Confirmed',details:'3 nights'},
+    {name:'Outbound Flight',date:'Feb 8',status:'Booked',details:'American 10:45pm'}
+  ]},
+  {name:'Austin Half Marathon',date:'Feb 15',month:1,items:[
+    {name:'Inbound Flight',date:'Feb 12',status:'Booked',details:'Southwest 7:10pm'},
+    {name:"Cristina's House",date:'Feb 12–15',status:'Confirmed',details:''},
+    {name:'Half Marathon Signup',date:'Feb 15',status:'Booked',details:''},
+    {name:'Outbound Flight',date:'Feb 16',status:'Booked',details:'JetBlue 7:10pm'}
+  ]},
+  {name:'Snowbird Ski Trip',date:'Feb 28',month:1,items:[
+    {name:'Inbound Flight',date:'Feb 26',status:'Booked',details:''},
+    {name:'Lift Tickets',date:'Feb 27–Mar 1',status:'Booked',details:''},
+    {name:'Rental Gear',date:'Feb 27–Mar 1',status:'Booked',details:''},
+    {name:'Airbnb',date:'Feb 26–Mar 1',status:'Confirmed',details:''},
+    {name:'Outbound Flight',date:'Mar 1',status:'Booked',details:''}
+  ]},
+  {name:'Robert Wedding – Miami',date:'Mar 21',month:2,items:[
+    {name:'Inbound Flight',date:'Mar 19',status:'Booked',details:'American 6:25pm'},
+    {name:'Stay at Home',date:'Mar 19–24',status:'Confirmed',details:''},
+    {name:'Gift',date:'Mar 21',status:'Confirmed',details:'$300 World Cup Fund'},
+    {name:'Outbound Flight',date:'Mar 24',status:'Booked',details:'American 7:50pm'}
+  ]},
+  {name:'Alec Wedding – Miami',date:'Apr 18',month:3,items:[
+    {name:'Inbound Flight',date:'Apr 15',status:'Booked',details:'American 6pm'},
+    {name:'Stay at Home',date:'Apr 15–19',status:'Confirmed',details:''},
+    {name:'Gift',date:'Apr 18',status:'Not Confirmed',details:'zola.com/wedding/lloretallmonwedding'},
+    {name:'Outbound Flight',date:'Apr 19',status:'Booked',details:'Delta 7:59pm'}
+  ]},
+  {name:'Daniel Engagement Party – Miami',date:'May 9',month:4,items:[
+    {name:'Inbound Flight',date:'May 6',status:'Booked',details:'Delta 8:05pm'},
+    {name:'Stay at Home',date:'May 7–11',status:'Confirmed',details:''},
+    {name:'Outbound Flight',date:'May 11',status:'Booked',details:'American 7:40pm'}
+  ]},
+  {name:'Christian Wedding – Boston',date:'May 30',month:4,items:[
+    {name:'Drive Out',date:'May 30',status:'Not Booked',details:''},
+    {name:'Airbnb',date:'',status:'Not Booked',details:''},
+    {name:'Gift',date:'May 30',status:'Not Confirmed',details:'oliviaandchristian.minted.us'},
+    {name:'Drive Home',date:'',status:'Not Booked',details:''}
+  ]},
+  {name:'Ben Wedding – Iowa',date:'Jun 13',month:5,items:[
+    {name:'Inbound Flight',date:'',status:'Not Booked',details:''},
+    {name:'Airbnb',date:'Jun 11–14',status:'Booked',details:'Mitch Booked'},
+    {name:'Gift',date:'Jun 13',status:'Not Confirmed',details:'zola.com/wedding/benandkennedy2026'},
+    {name:'Outbound Flight',date:'',status:'Not Booked',details:''}
+  ]},
+  {name:'Kennet Wedding – Brazil (TBD)',date:'Jun 20',month:5,items:[
+    {name:'Gift',date:'Jun 20',status:'Not Booked',details:'zola.com/wedding/carolinaandkennet'}
+  ]},
+  {name:'Dave Wedding – Maine',date:'Jul 11',month:6,items:[
+    {name:'Inbound Drive',date:'',status:'Not Booked',details:''},
+    {name:'Airbnb',date:'',status:'Not Booked',details:''},
+    {name:'Gift',date:'Jul 11',status:'Not Confirmed',details:'zola.com/wedding/the-bambricks'},
+    {name:'Outbound Drive',date:'',status:'Not Booked',details:''}
+  ]},
+  {name:'Kyle Wedding – Boston',date:'Aug 15',month:7,items:[
+    {name:'Gift',date:'Aug 15',status:'Not Confirmed',details:''}
+  ]},
+  {name:'Logan Wedding – Virginia',date:'Aug 29',month:7,items:[
+    {name:'Inbound Flight',date:'',status:'Not Booked',details:''},
+    {name:'Airbnb',date:'',status:'Not Booked',details:''},
+    {name:'Gift',date:'Aug 29',status:'Not Confirmed',details:''},
+    {name:'Outbound Flight',date:'',status:'Not Booked',details:''}
+  ]},
+  {name:'Fantasy Draft',date:'Sep 5',month:8,items:[
+    {name:'Inbound Flight',date:'',status:'Not Booked',details:''},
+    {name:'Airbnb',date:'',status:'Not Booked',details:''},
+    {name:'Outbound Flight',date:'',status:'Not Confirmed',details:''}
+  ]},
+  {name:'Ryan Wedding – Maine',date:'Sep 12',month:8,items:[
+    {name:'Inbound Drive',date:'',status:'Not Booked',details:''},
+    {name:'Airbnb',date:'',status:'Not Booked',details:''},
+    {name:'Gift',date:'Sep 12',status:'Not Confirmed',details:''},
+    {name:'Outbound Drive',date:'',status:'Not Booked',details:''}
+  ]},
+  {name:'Olivia Wedding – Chicago',date:'Oct 17',month:9,items:[
+    {name:'Inbound Flight',date:'',status:'Not Booked',details:''},
+    {name:'Airbnb',date:'',status:'Not Booked',details:''},
+    {name:'Gift',date:'Oct 17',status:'Not Confirmed',details:''},
+    {name:'Outbound Flight',date:'',status:'Not Booked',details:''}
+  ]},
+  {name:'Jeanette Wedding – Ocala',date:'Nov 21',month:10,items:[
+    {name:'Inbound Flight',date:'',status:'Not Booked',details:''},
+    {name:'Airbnb',date:'',status:'Not Booked',details:''},
+    {name:'Gift',date:'Nov 21',status:'Not Confirmed',details:''},
+    {name:'Outbound Flight',date:'',status:'Not Booked',details:''}
+  ]},
+  {name:'Thanksgiving',date:'Nov 26',month:10,items:[
+    {name:'Inbound Flight',date:'',status:'Not Booked',details:''},
+    {name:'Airbnb',date:'',status:'Not Booked',details:''},
+    {name:'Outbound Flight',date:'',status:'Not Confirmed',details:''}
+  ]},
+  {name:'Christmas',date:'Dec 25',month:11,items:[
+    {name:'Inbound Flight',date:'',status:'Not Booked',details:''},
+    {name:'Airbnb',date:'',status:'Not Booked',details:''},
+    {name:'Outbound Flight',date:'',status:'Not Confirmed',details:''}
+  ]}
+];
+
+function loadTrips() {
+  try { const s = localStorage.getItem('trips2026'); return s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULT_TRIPS)); }
+  catch(e) { return JSON.parse(JSON.stringify(DEFAULT_TRIPS)); }
+}
+
+function saveTrips() {
+  try { localStorage.setItem('trips2026', JSON.stringify(trips)); } catch(e) {}
+}
+
+let trips = loadTrips();
+let expanded = {};
+let editingIdx = null; // null = adding new
+let editDraft = null;
+
+function parseDateStr(s) {
+  if (!s) return null;
+  const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  const m = s.match(/^([A-Za-z]+)\s+(\d+)/);
+  if (!m) return null;
+  return new Date(2026, months[m[1]], parseInt(m[2]));
+}
+
+function isPast(trip) {
+  const d = parseDateStr(trip.date);
+  return d && d < TODAY;
+}
+
+function progressFor(ti) {
+  const t = trips[ti];
+  if (!t.items.length) return [0, 0];
+  const done = t.items.filter(it => it.status === 'Booked' || it.status === 'Confirmed').length;
+  return [done, t.items.length];
+}
+
+function updateStats() {
+  let total = 0, done = 0, pending = 0;
+  trips.forEach(t => t.items.forEach(it => {
+    total++;
+    (it.status === 'Booked' || it.status === 'Confirmed') ? done++ : pending++;
+  }));
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="stat-label">Trips</div><div class="stat-value">${trips.length}</div></div>
+    <div class="stat"><div class="stat-label">Requirements</div><div class="stat-value">${total}</div></div>
+    <div class="stat"><div class="stat-label">Completed</div><div class="stat-value green">${done}</div></div>
+    <div class="stat"><div class="stat-label">Still needed</div><div class="stat-value amber">${pending}</div></div>`;
+}
+
+function onStatusChange(ti, ii, val) {
+  trips[ti].items[ii].status = val;
+  saveTrips();
+  updateStats();
+  refreshProgress(ti);
+  showToast('Saved');
+}
+
+function refreshProgress(ti) {
+  const fill = document.getElementById('pf-' + ti);
+  const txt = document.getElementById('pt-' + ti);
+  if (!fill) return;
+  const [done, total] = progressFor(ti);
+  const pct = total ? Math.round(done / total * 100) : 0;
+  fill.style.width = pct + '%';
+  if (txt) txt.textContent = done + '/' + total;
+}
+
+function tripHTML(ti) {
+  const trip = trips[ti];
+  const past = isPast(trip);
+  const open = !!expanded[ti];
+  const [done, total] = progressFor(ti);
+  const pct = total ? Math.round(done / total * 100) : 0;
+  const color = MONTH_COLORS[trip.month % MONTH_COLORS.length];
+
+  let h = `<div class="trip-card${past ? ' past-trip' : ''}" id="tc-${ti}">
+    <div class="trip-header" onclick="handleHeaderClick(event,${ti})">
+      <div class="month-dot" style="background:${color}"></div>
+      <div class="trip-meta">
+        <div class="trip-name-row">
+          <span class="trip-name">${esc(trip.name)}</span>
+          ${past ? '<span class="past-badge">past</span>' : ''}
+        </div>
+        <div class="trip-date-label">${esc(trip.date)}</div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" id="pf-${ti}" style="width:${pct}%;background:${color}"></div></div>
+        <span class="progress-text" id="pt-${ti}">${done}/${total}</span>
+      </div>
+      <button class="btn btn-sm" onclick="openEdit(event,${ti})">Edit</button>
+      <span class="chevron" id="chev-${ti}" style="${open ? 'transform:rotate(180deg)' : ''}">▼</span>
+    </div>`;
+
+  if (open) {
+    h += `<div class="trip-items">
+      <div class="col-header">
+        <span class="col-label">Requirement</span>
+        <span class="col-label">Status</span>
+        <span class="col-label">Details</span>
+      </div>`;
+    trip.items.forEach((item, ii) => {
+      h += `<div class="item-row">
+        <div>
+          <div class="item-name">${esc(item.name)}</div>
+          ${item.date ? `<div class="item-date-lbl">${esc(item.date)}</div>` : ''}
+        </div>
+        <select class="status-select" onchange="onStatusChange(${ti},${ii},this.value)">
+          ${STATUSES.map(s => `<option value="${s}"${s === item.status ? ' selected' : ''}>${s}</option>`).join('')}
+        </select>
+        <div class="item-details-lbl">${esc(item.details) || '—'}</div>
+      </div>`;
+    });
+    h += '</div>';
+  }
+
+  h += '</div>';
+  return h;
+}
+
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function handleHeaderClick(e, ti) {
+  if (e.target.closest('.btn')) return;
+  expanded[ti] = !expanded[ti];
+  const el = document.getElementById('tc-' + ti);
+  if (el) el.outerHTML = tripHTML(ti);
+}
+
+function renderAll() {
+  document.getElementById('tripList').innerHTML = trips.map((_, i) => tripHTML(i)).join('');
+}
+
+function expandAll() { trips.forEach((_, i) => expanded[i] = true); renderAll(); }
+function collapseAll() { expanded = {}; renderAll(); }
+
+/* ── Modal ── */
+function openEdit(e, ti) {
+  e.stopPropagation();
+  editingIdx = ti;
+  editDraft = JSON.parse(JSON.stringify(trips[ti]));
+  document.getElementById('modalTitle').textContent = 'Edit trip';
+  document.getElementById('delTripBtn').style.display = '';
+  renderModalBody();
+  document.getElementById('modalBackdrop').classList.add('open');
+}
+
+function openAddTrip() {
+  editingIdx = null;
+  editDraft = { name: '', date: '', month: 0, items: [] };
+  document.getElementById('modalTitle').textContent = 'Add trip';
+  document.getElementById('delTripBtn').style.display = 'none';
+  renderModalBody();
+  document.getElementById('modalBackdrop').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalBackdrop').classList.remove('open');
+  editingIdx = null;
+  editDraft = null;
+}
+
+function handleBackdropClick(e) {
+  if (e.target === document.getElementById('modalBackdrop')) closeModal();
+}
+
+function renderModalBody() {
+  const trip = editDraft;
+  const monthOpts = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    .map((m, i) => `<option value="${i}"${i === trip.month ? ' selected' : ''}>${m}</option>`).join('');
+
+  let itemRows = trip.items.map((it, ii) => `
+    <tr>
+      <td><input class="table-input" value="${esc(it.name)}" oninput="editDraft.items[${ii}].name=this.value"></td>
+      <td><input class="table-input" value="${esc(it.date||'')}" oninput="editDraft.items[${ii}].date=this.value" style="max-width:90px"></td>
+      <td>
+        <select class="table-select" onchange="editDraft.items[${ii}].status=this.value">
+          ${STATUSES.map(s => `<option value="${s}"${s===it.status?' selected':''}>${s}</option>`).join('')}
+        </select>
+      </td>
+      <td><input class="table-input" value="${esc(it.details||'')}" oninput="editDraft.items[${ii}].details=this.value"></td>
+      <td><button class="del-btn" onclick="removeItem(${ii})">×</button></td>
+    </tr>`).join('');
+
+  document.getElementById('modalBody').innerHTML = `
+    <p class="section-label">Trip details</p>
+    <div class="trip-fields-grid">
+      <div class="field-group">
+        <label class="field-label">Name</label>
+        <input class="field-input" value="${esc(trip.name)}" oninput="editDraft.name=this.value" placeholder="e.g. Austin Trip">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Date label</label>
+        <input class="field-input" value="${esc(trip.date)}" oninput="editDraft.date=this.value" placeholder="e.g. Jun 15">
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Month (for color)</label>
+      <select class="field-input" onchange="editDraft.month=parseInt(this.value)" style="max-width:160px">${monthOpts}</select>
+    </div>
+    <p class="section-label">Requirements</p>
+    <div style="overflow-x:auto">
+      <table class="items-table">
+        <thead><tr>
+          <th>Requirement</th><th>Date</th><th>Status</th><th>Details</th><th style="width:32px"></th>
+        </tr></thead>
+        <tbody id="itemsTbody">${itemRows}</tbody>
+      </table>
+    </div>
+    <button class="add-row-btn" onclick="addItem()">+ Add requirement</button>`;
+}
+
+function addItem() {
+  editDraft.items.push({ name: '', date: '', status: 'Not Booked', details: '' });
+  renderModalBody();
+}
+
+function removeItem(ii) {
+  editDraft.items.splice(ii, 1);
+  renderModalBody();
+}
+
+function saveModal() {
+  if (!editDraft.name.trim()) { showToast('Please enter a trip name'); return; }
+  if (editingIdx === null) {
+    trips.push(JSON.parse(JSON.stringify(editDraft)));
+  } else {
+    trips[editingIdx] = JSON.parse(JSON.stringify(editDraft));
+  }
+  saveTrips();
+  closeModal();
+  updateStats();
+  renderAll();
+  showToast(editingIdx === null ? 'Trip added' : 'Trip updated');
+}
+
+function deleteTrip() {
+  if (!confirm(`Delete "${trips[editingIdx].name}"? This cannot be undone.`)) return;
+  trips.splice(editingIdx, 1);
+  saveTrips();
+  closeModal();
+  updateStats();
+  renderAll();
+  showToast('Trip deleted');
+}
+
+function exportCSV() {
+  let csv = 'Trip,Date,Requirement,Req Date,Status,Details\n';
+  trips.forEach(trip => trip.items.forEach(it => {
+    csv += `"${trip.name}","${trip.date}","${it.name}","${it.date||''}","${it.status}","${it.details||''}"\n`;
+  }));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = '2026_travel.csv';
+  a.click();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// Init
+updateStats();
+renderAll();
+
+// Auto-open the next upcoming trip
+let autoOpened = false;
+trips.forEach((trip, i) => {
+  if (!autoOpened) {
+    const d = parseDateStr(trip.date);
+    if (d && d >= TODAY) { expanded[i] = true; autoOpened = true; }
+  }
+});
+renderAll();
+</script>
+</body>
+</html>
