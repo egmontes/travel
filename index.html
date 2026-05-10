@@ -90,13 +90,19 @@
 
   .chevron { font-size: 11px; color: var(--text-tertiary); margin-left: 2px; transition: transform 0.2s; display: inline-block; }
   .trip-items { border-top: 0.5px solid var(--border); }
-  .col-header { display: grid; grid-template-columns: 1fr 150px 1fr; gap: 12px; padding: 7px 16px; background: var(--bg-secondary); }
+  .col-header { display: grid; grid-template-columns: 1fr 140px 140px 1fr; gap: 10px; padding: 7px 16px; background: var(--bg-secondary); }
   .col-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
-  .item-row { display: grid; grid-template-columns: 1fr 150px 1fr; align-items: center; gap: 12px; padding: 10px 16px; border-top: 0.5px solid var(--border); }
+  .item-row { display: grid; grid-template-columns: 1fr 140px 140px 1fr; align-items: center; gap: 10px; padding: 10px 16px; border-top: 0.5px solid var(--border); }
   .item-name { font-size: 14px; color: var(--text); }
   .item-date-lbl { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
   .item-details-lbl { font-size: 13px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .status-select { font-size: 13px; border: 0.5px solid var(--border-secondary); border-radius: var(--radius-md); padding: 5px 8px; background: var(--bg); color: var(--text); cursor: pointer; width: 100%; font-family: inherit; }
+  .status-select.s-green { background: #dcfce7; color: #166534; border-color: #86efac; }
+  .status-select.s-red   { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+  @media (prefers-color-scheme: dark) {
+    .status-select.s-green { background: #14532d; color: #86efac; border-color: #166534; }
+    .status-select.s-red   { background: #450a0a; color: #fca5a5; border-color: #991b1b; }
+  }
 
   .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
   .modal-backdrop.open { display: flex; }
@@ -263,12 +269,12 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+const IS_LOCAL = location.protocol === 'file:';
+let _fbDoc, _fbSetDoc, _fbOnSnapshot;
 
 const STATUSES = ['Booked','Confirmed','Not Booked','Not Confirmed'];
 const MONTH_COLORS = ['#378ADD','#E24B4A','#1D9E75','#D4537E','#639922','#0F6E56','#D85A30','#BA7517','#534AB7','#5F5E5A','#985EA5','#0C447C'];
-const TODAY = new Date(2026,4,6);
+const TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const CFG_KEY = 'travelFbCfg';
 const DOC_PATH  = ['travel','trips2026'];
 
@@ -374,8 +380,19 @@ function getCfg() { try { return JSON.parse(localStorage.getItem(CFG_KEY)||'null
 function setCfg(c) { try { localStorage.setItem(CFG_KEY, JSON.stringify(c)); } catch(e) {} }
 
 async function connect(cfg) {
+  if (IS_LOCAL) {
+    setSyncState('', 'Local mode (no sync)');
+    const saved = localStorage.getItem('trips_local');
+    if (saved) { trips = JSON.parse(saved); }
+    updateStats(); updateTabCounts(); renderAll();
+    showToast('Running locally — changes save to this browser only');
+    return;
+  }
   setSyncState('syncing','Connecting…');
   try {
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, getDoc, setDoc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    _fbDoc = doc; _fbSetDoc = setDoc; _fbOnSnapshot = onSnapshot;
     const app = initializeApp(cfg, 'travelApp');
     db = getFirestore(app);
     const ref = doc(db, ...DOC_PATH);
@@ -465,11 +482,15 @@ async function connect(cfg) {
 }
 
 async function persist() {
-  if (!db) return;
+  if (IS_LOCAL) {
+    try { localStorage.setItem('trips_local', JSON.stringify(trips)); } catch(e) {}
+    return;
+  }
+  if (!db || !_fbDoc || !_fbSetDoc) return;
   writing = true;
   setSyncState('syncing','Saving…');
   try {
-    await setDoc(doc(db, ...DOC_PATH), { trips });
+    await _fbSetDoc(_fbDoc(db, ...DOC_PATH), { trips });
     const t = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
     setSyncState('connected','Connected · saved at ' + t);
   } catch(e) {
@@ -506,6 +527,42 @@ function formatDateDisplay(s) {
   if (!d) return s;
   return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
 }
+const DETAILS_OPTIONS = {
+  'Inbound':  ['✈️ Plane','🚂 Train','🚗 Car','⛵ Boat','🔘 Other'],
+  'Outbound': ['✈️ Plane','🚂 Train','🚗 Car','⛵ Boat','🔘 Other'],
+  'Stay':     ['🏨 Hotel','🏡 Rental','🏠 Home','🔘 Other'],
+  'Gift':     ['🎀 Registry','🎂 Birthday','🔘 Other'],
+};
+
+function detailsOptsFor(name) {
+  // Match by prefix in case of custom labels like "Inbound Flight"
+  const key = Object.keys(DETAILS_OPTIONS).find(k => name && name.toLowerCase().startsWith(k.toLowerCase()));
+  return key ? DETAILS_OPTIONS[key] : null;
+}
+
+function modalDetailsCell(it, ii) {
+  const opts = detailsOptsFor(it.name);
+  if (!opts) return '<span style="font-size:12px;color:var(--text-tertiary)">N/A</span>';
+  const cur = it.details || '';
+  const optsHtml = opts.map(o => `<option value="${o}"${o === cur ? ' selected' : ''}>${o}</option>`).join('');
+  return `<select class="table-select" onchange="window._editDraft.items[${ii}].details=this.value"><option value="">— select —</option>${optsHtml}</select>`;
+}
+
+function detailsCell(item, ti, ii) {
+  const opts = detailsOptsFor(item.name);
+  if (!opts) return `<div class="item-details-lbl" style="color:var(--text-tertiary)">—</div>`;
+  const cur = item.details || '';
+  const sel = opts.find(o => o === cur) ? cur : '';
+  return `<select class="status-select" style="font-size:12px" onchange="onDetailChange(${ti},${ii},this.value)">
+    <option value="">— select —</option>
+    ${opts.map(o => `<option value="${o}"${o===cur?' selected':''}>${o}</option>`).join('')}
+  </select>`;
+}
+
+function statusColorClass(status) {
+  return (status === 'Booked' || status === 'Confirmed') ? 's-green' : 's-red';
+}
+
 function formatItemDate(item) {
   // New format: dateStart / dateEnd
   if (item.dateStart) {
@@ -535,7 +592,7 @@ function updateStats() {
   trips.forEach(t => t.items.forEach(it => { total++; (it.status==='Booked'||it.status==='Confirmed')?done++:pend++; }));
   document.getElementById('stats').innerHTML = `
     <div class="stat"><div class="stat-label">Trips</div><div class="stat-value">${trips.length}</div></div>
-    <div class="stat"><div class="stat-label">Requirements</div><div class="stat-value">${total}</div></div>
+    <div class="stat"><div class="stat-label">Items</div><div class="stat-value">${total}</div></div>
     <div class="stat"><div class="stat-label">Completed</div><div class="stat-value green">${done}</div></div>
     <div class="stat"><div class="stat-label">Still needed</div><div class="stat-value amber">${pend}</div></div>`;
 }
@@ -596,22 +653,23 @@ function tripHTML(ti) {
         return da - db;
       });
 
-    h += `<div class="trip-items"><div class="col-header"><span class="col-label">Requirement</span><span class="col-label">Status</span><span class="col-label">Details</span></div>`;
+    h += `<div class="trip-items"><div class="col-header"><span class="col-label">Item</span><span class="col-label">Status</span><span class="col-label">Details</span><span class="col-label">Notes</span></div>`;
     sortedItems.forEach(({item, ii}) => {
       h += `<div class="item-row">
         <div><div class="item-name">${esc(item.name)}</div>${formatItemDate(item)?`<div class="item-date-lbl">${esc(formatItemDate(item))}</div>`:''}</div>
-        <select class="status-select" onchange="onStatusChange(${ti},${ii},this.value)">
+        <select class="status-select ${statusColorClass(item.status)}" onchange="onStatusChange(${ti},${ii},this.value);this.className='status-select '+statusColorClass(this.value)">
           ${STATUSES.map(s=>`<option value="${s}"${s===item.status?' selected':''}>${s}</option>`).join('')}
         </select>
-        <div class="item-details-lbl">${esc(item.details)||'—'}</div>
+        ${detailsCell(item,ti,ii)}
+        <div class="item-details-lbl">${esc(item.notes||'')||'—'}</div>
       </div>`;
     });
     h += `<div class="add-req-trigger" onclick="toggleAddReq(event,${ti})" id="add-req-trigger-${ti}">
-      <span style="font-size:16px;line-height:1">+</span> Add requirement
+      <span style="font-size:16px;line-height:1">+</span> Add item
     </div>
     <div class="add-req-row" id="add-req-row-${ti}" style="display:none">
       <div class="add-req-fields">
-        <input class="add-req-input" list="req-presets" id="add-req-input-${ti}" placeholder="Requirement name" onkeydown="handleAddReqKey(event,${ti})">
+        <input class="add-req-input" list="req-presets" id="add-req-input-${ti}" placeholder="Item name" onkeydown="handleAddReqKey(event,${ti})">
         <input class="add-req-input" type="date" id="add-req-date-${ti}" title="Start date">
         <select class="add-req-input" id="add-req-status-${ti}">
           ${STATUSES.map(s => `<option value="${s}"${s==='Not Booked'?' selected':''}>${s}</option>`).join('')}
@@ -694,6 +752,11 @@ function handleHeaderClick(e,ti) {
   });
 }
 
+function onDetailChange(ti, ii, val) {
+  trips[ti].items[ii].details = val;
+  persist();
+}
+
 function onStatusChange(ti,ii,val) {
   trips[ti].items[ii].status = val;
   updateStats();
@@ -746,7 +809,8 @@ function renderTripBody() {
       </div>
     </td>
     <td><select class="table-select" onchange="window._editDraft.items[${ii}].status=this.value">${STATUSES.map(s=>`<option value="${s}"${s===it.status?' selected':''}>${s}</option>`).join('')}</select></td>
-    <td><input class="table-input" value="${esc(it.details||'')}" oninput="window._editDraft.items[${ii}].details=this.value"></td>
+    <td>${modalDetailsCell(it, ii)}</td>
+    <td><input class="table-input" value="${esc(it.notes||'')}" oninput="window._editDraft.items[${ii}].notes=this.value" placeholder="Notes"></td>
     <td><button class="del-btn" onclick="removeItem(${ii})">&#215;</button></td>
   </tr>`).join('');
 
@@ -761,18 +825,18 @@ function renderTripBody() {
       <div class="field-group"><label class="field-label">Category</label>
         <select class="field-input" onchange="window._editDraft.category=this.value">
           <option value="">— Select —</option>
-          ${['Wedding','Vacation','Holiday','Work','Party','Other'].map(c=>`<option value="${c}"${trip.category===c?' selected':''}}>${c}</option>`).join('')}
+          ${['Wedding','Vacation','Holiday','Work','Party','Other'].map(c=>`<option value="${c}"${trip.category===c?' selected':''}>${c}</option>`).join('')}
         </select>
       </div>
     </div>
-    <p class="section-label">Requirements</p>
+    <p class="section-label">Items</p>
     <div style="overflow-x:auto">
       <table class="items-table">
-        <thead><tr><th>Requirement</th><th>Date</th><th>Status</th><th>Details</th><th style="width:32px"></th></tr></thead>
+        <thead><tr><th>Item</th><th>Date</th><th>Status</th><th>Details</th><th>Notes</th><th style="width:32px"></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
-    <button class="add-row-btn" onclick="addItem()">+ Add requirement</button>`;
+    <button class="add-row-btn" onclick="addItem()">+ Add item</button>`;
 }
 
 function addItem() { window._editDraft.items.push({name:'',date:'',dateStart:'',dateEnd:'',status:'Not Booked',details:''}); renderTripBody(); }
@@ -810,7 +874,7 @@ async function commitAddReq(ti) {
   expanded[ti] = true;
   updateStats(); updateTabCounts(); renderAll();
   await persist();
-  showToast('Requirement added');
+  showToast('Item added');
 }
 
 function handleAddReqKey(e, ti) {
@@ -888,7 +952,7 @@ function showToast(msg) {
 }
 
 // expose to inline handlers
-Object.assign(window, { handleHeaderClick, onStatusChange, openEdit, openAddTrip,
+Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, detailsOptsFor, detailsCell, modalDetailsCell, openEdit, openAddTrip, statusColorClass,
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
   closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab,
   toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey });
@@ -900,7 +964,7 @@ function collapseAll() { expanded={}; renderAll(); }
 
 // ── Swipe gesture support ──
 (function() {
-  const TABS = ['upcoming', 'all', 'past'];
+  const SWIPE_TABS = ['upcoming', 'all', 'past'];
   let startX = 0, startY = 0, isDragging = false, isHoriz = null;
   let dragOffset = 0;
 
@@ -908,7 +972,7 @@ function collapseAll() { expanded={}; renderAll(); }
   function panelWidth() { return document.getElementById('sliderViewport').offsetWidth; }
 
   function baseOffset() {
-    return -TABS.indexOf(activeTab) * (100 / 3);
+    return -SWIPE_TABS.indexOf(activeTab) * (100 / 3);
   }
 
   function applyOffset(extra) {
@@ -941,7 +1005,7 @@ function collapseAll() { expanded={}; renderAll(); }
     if (!isHoriz) return;
 
     isDragging = true;
-    const cur = TABS.indexOf(activeTab);
+    const cur = SWIPE_TABS.indexOf(activeTab);
 
     // Resist at edges
     let limited = dx;
@@ -959,11 +1023,11 @@ function collapseAll() { expanded={}; renderAll(); }
     if (!isDragging) { isDragging = false; isHoriz = null; return; }
     isDragging = false; isHoriz = null;
 
-    const cur = TABS.indexOf(activeTab);
+    const cur = SWIPE_TABS.indexOf(activeTab);
     const threshold = panelWidth() * 0.25;
 
     if (dragOffset < -threshold && cur < TABS.length - 1) {
-      setTab(TABS[cur + 1]);
+      setTab(SWIPE_TABS[cur + 1]);
       const hint = document.getElementById('swipeHint');
       if (hint) hint.style.display = 'none';
     } else if (dragOffset > threshold && cur > 0) {
