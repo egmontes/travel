@@ -539,9 +539,34 @@ const DETAILS_OPTIONS = {
 };
 
 function detailsOptsFor(name) {
-  // Match by prefix in case of custom labels like "Inbound Flight"
-  const key = Object.keys(DETAILS_OPTIONS).find(k => name && name.toLowerCase().startsWith(k.toLowerCase()));
+  if (!name) return null;
+  // Strip everything before the first ASCII letter to remove emojis/spaces
+  const stripped = name.replace(/^[^a-zA-Z]+/, '').trim();
+  const key = Object.keys(DETAILS_OPTIONS).find(k =>
+    stripped.toLowerCase().startsWith(k.toLowerCase()) ||
+    name.toLowerCase().startsWith(k.toLowerCase())
+  );
   return key ? DETAILS_OPTIONS[key] : null;
+}
+
+function modalItemNameCell(it, ii) {
+  const PRESETS = ['✈️ Inbound','✈️ Outbound','🏨 Stay','🎁 Gift','🎟️ Tickets','📋 Registration','🎿 Equipment'];
+  const isPreset = PRESETS.includes(it.name);
+  const isCustom = it.name && !isPreset;
+  const presetOpts = PRESETS.map(p => `<option value="${p}"${it.name===p?' selected':''}>${p}</option>`).join('');
+  const customSelected = isCustom ? ' selected' : '';
+  const showCustom = isCustom ? '' : 'display:none';
+  const customVal = isCustom ? esc(it.name) : '';
+  return `<div style="display:flex;flex-direction:column;gap:4px">
+    <select class="table-input" onchange="handleModalItemType(${ii},this.value)">
+      <option value="">— select —</option>
+      ${presetOpts}
+      <option value="__custom__"${customSelected}>✏️ Custom…</option>
+    </select>
+    <input class="table-input" id="modal-custom-${ii}" placeholder="Custom item name"
+      style="${showCustom}" value="${customVal}"
+      oninput="window._editDraft.items[${ii}].name=this.value">
+  </div>`;
 }
 
 function modalDetailsCell(it, ii) {
@@ -686,7 +711,20 @@ function tripHTML(ti) {
     </div>
     <div class="add-req-row" id="add-req-row-${ti}" style="display:none">
       <div class="add-req-fields three">
-        <input class="add-req-input" list="req-presets" id="add-req-input-${ti}" placeholder="Item name" onkeydown="handleAddReqKey(event,${ti})" oninput="refreshAddItemDetails(${ti},this.value)">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <select class="add-req-input" id="add-req-input-${ti}" onchange="handleAddItemType(${ti},this.value)">
+            <option value="">— select item —</option>
+            <option value="✈️ Inbound">✈️ Inbound</option>
+            <option value="✈️ Outbound">✈️ Outbound</option>
+            <option value="🏨 Stay">🏨 Stay</option>
+            <option value="🎁 Gift">🎁 Gift</option>
+            <option value="🎟️ Tickets">🎟️ Tickets</option>
+            <option value="📋 Registration">📋 Registration</option>
+            <option value="🎿 Equipment">🎿 Equipment</option>
+            <option value="custom">✏️ Custom…</option>
+          </select>
+          <input class="add-req-input" id="add-req-custom-${ti}" placeholder="Custom item name" style="display:none" oninput="refreshAddItemDetails(${ti},this.value)">
+        </div>
         <input class="add-req-input" type="date" id="add-req-date-${ti}" title="Start date">
         <select class="add-req-input" id="add-req-status-${ti}">
           ${STATUSES.map(s => `<option value="${s}"${s==='Not Booked'?' selected':''}>${s}</option>`).join('')}
@@ -822,8 +860,7 @@ function renderTripBody() {
   const trip = window._editDraft;
   const rows = trip.items.map((it,ii)=>`<tr>
     <td>
-      <div style="display:flex;gap:4px;align-items:center">
-        <input class="table-input" list="req-presets" value="${esc(it.name)}" oninput="window._editDraft.items[${ii}].name=this.value" placeholder="Requirement">
+      ${modalItemNameCell(it, ii)}
       </div>
     </td>
     <td>
@@ -945,6 +982,24 @@ function getAddReqField(ti, id) {
   return el ? el.value : '';
 }
 
+function handleModalItemType(ii, val) {
+  const custom = document.getElementById('modal-custom-' + ii);
+  if (val === '__custom__') {
+    if (custom) { custom.style.display = ''; custom.focus(); }
+    window._editDraft.items[ii].name = custom?.value || '';
+  } else {
+    if (custom) custom.style.display = 'none';
+    window._editDraft.items[ii].name = val;
+  }
+}
+
+function handleAddItemType(ti, val) {
+  const custom = document.getElementById('add-req-custom-' + ti);
+  if (custom) custom.style.display = val === 'custom' ? 'block' : 'none';
+  const name = val === 'custom' ? '' : val;
+  refreshAddItemDetails(ti, name);
+}
+
 function refreshAddItemDetails(ti, name) {
   const sel = document.getElementById('add-req-details-' + ti);
   if (!sel) return;
@@ -968,8 +1023,18 @@ function toggleAddReq(e, ti) {
   row.style.display = isOpen ? 'none' : 'flex';
   trigger.style.display = isOpen ? 'flex' : 'none';
   if (!isOpen) {
-    const inp = document.getElementById('add-req-input-' + ti);
-    if (inp) { inp.value = ''; inp.focus(); }
+    const sel = document.getElementById('add-req-input-' + ti);
+    if (sel) { sel.value = ''; sel.focus(); }
+    const custom = document.getElementById('add-req-custom-' + ti);
+    if (custom) { custom.value = ''; custom.style.display = 'none'; }
+    const detSel = document.getElementById('add-req-details-' + ti);
+    if (detSel) { detSel.innerHTML = '<option value="">— Details —</option>'; }
+    const dateSt = document.getElementById('add-req-date-' + ti);
+    if (dateSt) dateSt.value = '';
+    const dateEnd = document.getElementById('add-req-date-end-' + ti);
+    if (dateEnd) dateEnd.value = '';
+    const statusSel = document.getElementById('add-req-status-' + ti);
+    if (statusSel) statusSel.value = 'Not Booked';
   }
 }
 
@@ -981,10 +1046,11 @@ function cancelAddReq(ti) {
 }
 
 async function commitAddReq(ti) {
-  const inp = document.getElementById('add-req-input-' + ti);
-  if (!inp) return;
-  const name = inp.value.trim();
-  if (!name) { inp.focus(); return; }
+  const sel = document.getElementById('add-req-input-' + ti);
+  const customInp = document.getElementById('add-req-custom-' + ti);
+  if (!sel) return;
+  const name = (sel.value === 'custom' ? (customInp?.value || '') : sel.value).trim();
+  if (!name) { (sel.value === 'custom' ? customInp : sel)?.focus(); showToast('Please enter an item name'); return; }
   const dateStart = (document.getElementById('add-req-date-' + ti) || {}).value || '';
   const dateEnd   = (document.getElementById('add-req-date-end-' + ti) || {}).value || '';
   const status    = (document.getElementById('add-req-status-' + ti) || {}).value || 'Not Booked';
@@ -1075,7 +1141,7 @@ Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, detai
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
   closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab,
   toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey,
-  refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange });
+  refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell });
 
 
 
@@ -1181,7 +1247,13 @@ const HARDCODED_CFG = {
 connect(HARDCODED_CFG);
 </script>
 <datalist id="req-presets">
-  <option value="Inbound">✈️ Inbound</option><option value="Outbound">✈️ Outbound</option><option value="Stay">🏨 Stay</option><option value="Gift">🎁 Gift</option><option value="Tickets">🎟️ Tickets</option><option value="Registration">📋 Registration</option><option value="Equipment">🎿 Equipment</option>
+  <option value="✈️ Inbound">
+  <option value="✈️ Outbound">
+  <option value="🏨 Stay">
+  <option value="🎁 Gift">
+  <option value="🎟️ Tickets">
+  <option value="📋 Registration">
+  <option value="🎿 Equipment">
 </datalist>
 </body>
 </html>
