@@ -65,6 +65,15 @@
   .trip-date-label { font-size: 13px; color: var(--text-secondary); }
   .trip-location-label { font-size: 12px; color: var(--text-tertiary); margin-top: 1px; }
   .category-badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; background: var(--bg-secondary); color: var(--text-secondary); border: 0.5px solid var(--border); margin-left: 6px; }
+  .add-req-row { display: flex; flex-direction: column; gap: 8px; padding: 10px 16px; border-top: 0.5px solid var(--border); background: var(--bg-secondary); }
+  .add-req-fields { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .add-req-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .add-req-input { font-size: 13px; border: 0.5px solid var(--border-secondary); border-radius: var(--radius-md); padding: 5px 10px; background: var(--bg); color: var(--text); font-family: inherit; flex: 1; min-width: 0; }
+  .add-req-input:focus { outline: none; border-color: var(--text-secondary); }
+  .add-req-btn { font-size: 12px; padding: 5px 12px; border-radius: var(--radius-md); border: 0.5px solid var(--border-secondary); background: transparent; color: var(--text-secondary); cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .add-req-btn:hover { background: var(--bg); color: var(--text); }
+  .add-req-trigger { display: flex; align-items: center; gap: 6px; padding: 9px 16px; border-top: 0.5px solid var(--border); color: var(--text-tertiary); font-size: 13px; cursor: pointer; transition: background 0.15s; }
+  .add-req-trigger:hover { background: var(--bg-secondary); color: var(--text-secondary); }
   .progress-wrap { display: flex; align-items: center; gap: 8px; }
   .progress-bar { width: 56px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
   .progress-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
@@ -416,6 +425,19 @@ async function connect(cfg) {
         t.category = '';
         needsMigration = true;
       }
+      // Migrate item date strings to dateStart/dateEnd
+      if (t.items) {
+        t.items = t.items.map(item => {
+          if (item.dateStart === undefined) {
+            const it = Object.assign({}, item);
+            it.dateStart = '';
+            it.dateEnd = '';
+            needsMigration = true;
+            return it;
+          }
+          return item;
+        });
+      }
       return t;
     });
 
@@ -484,6 +506,19 @@ function formatDateDisplay(s) {
   if (!d) return s;
   return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
 }
+function formatItemDate(item) {
+  // New format: dateStart / dateEnd
+  if (item.dateStart) {
+    const start = formatDateDisplay(item.dateStart);
+    if (item.dateEnd && item.dateEnd !== item.dateStart) {
+      const end = formatDateDisplay(item.dateEnd);
+      return `${start} – ${end}`;
+    }
+    return start;
+  }
+  // Legacy: plain date string like "Jan 7" or "Jan 7–9"
+  return item.date || '';
+}
 function isPast(t) { const d = parseDateStr(t.startDate || t.date); return d && d < TODAY; }
 function progressFor(ti) {
   const t = trips[ti];
@@ -549,16 +584,48 @@ function tripHTML(ti) {
       <span class="chevron" style="${open?'transform:rotate(180deg)':''}">&#9660;</span>
     </div>`;
   if (open) {
+    // Sort items by dateStart, undated items go last
+    const sortedItems = trip.items
+      .map((item, ii) => ({item, ii}))
+      .sort((a, b) => {
+        const da = parseDateStr(a.item.dateStart || a.item.date);
+        const db = parseDateStr(b.item.dateStart || b.item.date);
+        if (!da && !db) return 0;
+        if (!da) return 1;
+        if (!db) return -1;
+        return da - db;
+      });
+
     h += `<div class="trip-items"><div class="col-header"><span class="col-label">Requirement</span><span class="col-label">Status</span><span class="col-label">Details</span></div>`;
-    trip.items.forEach((item,ii) => {
+    sortedItems.forEach(({item, ii}) => {
       h += `<div class="item-row">
-        <div><div class="item-name">${esc(item.name)}</div>${item.date?`<div class="item-date-lbl">${esc(item.date)}</div>`:''}</div>
+        <div><div class="item-name">${esc(item.name)}</div>${formatItemDate(item)?`<div class="item-date-lbl">${esc(formatItemDate(item))}</div>`:''}</div>
         <select class="status-select" onchange="onStatusChange(${ti},${ii},this.value)">
           ${STATUSES.map(s=>`<option value="${s}"${s===item.status?' selected':''}>${s}</option>`).join('')}
         </select>
         <div class="item-details-lbl">${esc(item.details)||'—'}</div>
       </div>`;
     });
+    h += `<div class="add-req-trigger" onclick="toggleAddReq(event,${ti})" id="add-req-trigger-${ti}">
+      <span style="font-size:16px;line-height:1">+</span> Add requirement
+    </div>
+    <div class="add-req-row" id="add-req-row-${ti}" style="display:none">
+      <div class="add-req-fields">
+        <input class="add-req-input" list="req-presets" id="add-req-input-${ti}" placeholder="Requirement name" onkeydown="handleAddReqKey(event,${ti})">
+        <input class="add-req-input" type="date" id="add-req-date-${ti}" title="Start date">
+        <select class="add-req-input" id="add-req-status-${ti}">
+          ${STATUSES.map(s => `<option value="${s}"${s==='Not Booked'?' selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input class="add-req-input" id="add-req-date-end-${ti}" type="date" title="End date (optional)" style="flex:1">
+        <span style="font-size:11px;color:var(--text-tertiary);white-space:nowrap">end date (optional)</span>
+      </div>
+      <div class="add-req-actions">
+        <button class="add-req-btn" onclick="cancelAddReq(${ti})">Cancel</button>
+        <button class="add-req-btn" style="color:var(--text);border-color:var(--border-secondary)" onclick="commitAddReq(${ti})">Add</button>
+      </div>
+    </div>`;
     h += '</div>';
   }
   return h + '</div>';
@@ -664,8 +731,20 @@ function openAddTrip() {
 function renderTripBody() {
   const trip = window._editDraft;
   const rows = trip.items.map((it,ii)=>`<tr>
-    <td><input class="table-input" value="${esc(it.name)}" oninput="window._editDraft.items[${ii}].name=this.value"></td>
-    <td><input class="table-input" value="${esc(it.date||'')}" oninput="window._editDraft.items[${ii}].date=this.value" style="max-width:88px"></td>
+    <td>
+      <div style="display:flex;gap:4px;align-items:center">
+        <input class="table-input" list="req-presets" value="${esc(it.name)}" oninput="window._editDraft.items[${ii}].name=this.value" placeholder="Requirement">
+      </div>
+    </td>
+    <td>
+      <div style="display:flex;flex-direction:column;gap:3px;min-width:130px">
+        <input class="table-input" type="date" value="${esc(it.dateStart||'')}" onchange="window._editDraft.items[${ii}].dateStart=this.value;if(!window._editDraft.items[${ii}].dateEnd)window._editDraft.items[${ii}].dateEnd=''" title="Start date">
+        <div style="display:flex;align-items:center;gap:4px">
+          <input class="table-input" type="date" value="${esc(it.dateEnd||'')}" onchange="window._editDraft.items[${ii}].dateEnd=this.value" title="End date (optional)" style="flex:1">
+          <span style="font-size:10px;color:var(--text-tertiary);white-space:nowrap">end</span>
+        </div>
+      </div>
+    </td>
     <td><select class="table-select" onchange="window._editDraft.items[${ii}].status=this.value">${STATUSES.map(s=>`<option value="${s}"${s===it.status?' selected':''}>${s}</option>`).join('')}</select></td>
     <td><input class="table-input" value="${esc(it.details||'')}" oninput="window._editDraft.items[${ii}].details=this.value"></td>
     <td><button class="del-btn" onclick="removeItem(${ii})">&#215;</button></td>
@@ -696,7 +775,48 @@ function renderTripBody() {
     <button class="add-row-btn" onclick="addItem()">+ Add requirement</button>`;
 }
 
-function addItem() { window._editDraft.items.push({name:'',date:'',status:'Not Booked',details:''}); renderTripBody(); }
+function addItem() { window._editDraft.items.push({name:'',date:'',dateStart:'',dateEnd:'',status:'Not Booked',details:''}); renderTripBody(); }
+
+function toggleAddReq(e, ti) {
+  e.stopPropagation();
+  const row = document.getElementById('add-req-row-' + ti);
+  const trigger = document.getElementById('add-req-trigger-' + ti);
+  if (!row) return;
+  const isOpen = row.style.display !== 'none';
+  row.style.display = isOpen ? 'none' : 'flex';
+  trigger.style.display = isOpen ? 'flex' : 'none';
+  if (!isOpen) {
+    const inp = document.getElementById('add-req-input-' + ti);
+    if (inp) { inp.value = ''; inp.focus(); }
+  }
+}
+
+function cancelAddReq(ti) {
+  const row = document.getElementById('add-req-row-' + ti);
+  const trigger = document.getElementById('add-req-trigger-' + ti);
+  if (row) row.style.display = 'none';
+  if (trigger) trigger.style.display = 'flex';
+}
+
+async function commitAddReq(ti) {
+  const inp = document.getElementById('add-req-input-' + ti);
+  if (!inp) return;
+  const name = inp.value.trim();
+  if (!name) { inp.focus(); return; }
+  const dateStart = (document.getElementById('add-req-date-' + ti) || {}).value || '';
+  const dateEnd   = (document.getElementById('add-req-date-end-' + ti) || {}).value || '';
+  const status    = (document.getElementById('add-req-status-' + ti) || {}).value || 'Not Booked';
+  trips[ti].items.push({name, date:'', dateStart, dateEnd, status, details:''});
+  expanded[ti] = true;
+  updateStats(); updateTabCounts(); renderAll();
+  await persist();
+  showToast('Requirement added');
+}
+
+function handleAddReqKey(e, ti) {
+  if (e.key === 'Enter') commitAddReq(ti);
+  if (e.key === 'Escape') cancelAddReq(ti);
+}
 function removeItem(ii) { window._editDraft.items.splice(ii,1); renderTripBody(); }
 
 async function saveTrip() {
@@ -770,7 +890,8 @@ function showToast(msg) {
 // expose to inline handlers
 Object.assign(window, { handleHeaderClick, onStatusChange, openEdit, openAddTrip,
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
-  closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab });
+  closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab,
+  toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey });
 
 
 
@@ -875,5 +996,8 @@ const HARDCODED_CFG = {
 
 connect(HARDCODED_CFG);
 </script>
+<datalist id="req-presets">
+  <option value="Inbound">✈️ Inbound</option><option value="Outbound">✈️ Outbound</option><option value="Stay">🏨 Stay</option><option value="Gift">🎁 Gift</option><option value="Tickets">🎟️ Tickets</option><option value="Registration">📋 Registration</option><option value="Equipment">🎿 Equipment</option>
+</datalist>
 </body>
 </html>
