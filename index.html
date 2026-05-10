@@ -123,13 +123,14 @@
   .trip-fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .section-label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; margin: 20px 0 10px; }
   .section-label:first-child { margin-top: 0; }
-  .items-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .items-table th { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 8px; text-align: left; border-bottom: 0.5px solid var(--border); font-weight: 500; }
-  .items-table td { padding: 5px 4px; vertical-align: middle; }
+  .items-table { border-collapse: collapse; font-size: 13px; min-width: 700px; }
+  .items-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .items-table th { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 8px; text-align: left; border-bottom: 0.5px solid var(--border); font-weight: 500; white-space: nowrap; }
+  .items-table td { padding: 5px 4px; vertical-align: middle; white-space: nowrap; }
   .items-table tr:not(:last-child) td { border-bottom: 0.5px solid var(--border); }
-  .table-input { font-size: 13px; border: 0.5px solid var(--border-secondary); border-radius: var(--radius-md); padding: 5px 7px; background: var(--bg); color: var(--text); width: 100%; font-family: inherit; }
+  .table-input { font-size: 13px; border: 0.5px solid var(--border-secondary); border-radius: var(--radius-md); padding: 5px 7px; background: var(--bg); color: var(--text); width: 100%; font-family: inherit; box-sizing: border-box; }
   .table-input:focus { outline: none; border-color: var(--text-secondary); }
-  .table-select { font-size: 13px; border: 0.5px solid var(--border-secondary); border-radius: var(--radius-md); padding: 5px 6px; background: var(--bg); color: var(--text); width: 100%; font-family: inherit; }
+  .table-select { font-size: 13px; border: 0.5px solid var(--border-secondary); border-radius: var(--radius-md); padding: 5px 6px; background: var(--bg); color: var(--text); width: 100%; font-family: inherit; box-sizing: border-box; }
   .del-btn { background: none; border: none; cursor: pointer; color: var(--text-tertiary); font-size: 18px; padding: 2px 6px; line-height: 1; border-radius: 4px; font-family: inherit; }
   .del-btn:hover { color: var(--danger-text); background: var(--danger-bg); }
   .add-row-btn { font-size: 13px; padding: 7px 12px; color: var(--text-secondary); background: transparent; border: 0.5px dashed var(--border-secondary); border-radius: var(--radius-md); cursor: pointer; width: 100%; margin-top: 10px; text-align: center; font-family: inherit; transition: background 0.15s; }
@@ -550,7 +551,7 @@ function detailsOptsFor(name) {
 }
 
 function modalItemNameCell(it, ii) {
-  const PRESETS = ['✈️ Inbound','✈️ Outbound','🏨 Stay','🎁 Gift','🎟️ Tickets','📋 Registration','🎿 Equipment'];
+  const PRESETS = ['➡️ Inbound','⬅️ Outbound','🏨 Stay','🎁 Gift','🎟️ Tickets','📋 Registration','🎿 Equipment'];
   const isPreset = PRESETS.includes(it.name);
   const isCustom = it.name && !isPreset;
   const presetOpts = PRESETS.map(p => `<option value="${p}"${it.name===p?' selected':''}>${p}</option>`).join('');
@@ -723,8 +724,8 @@ function tripHTML(ti) {
         <div style="display:flex;flex-direction:column;gap:4px">
           <select class="add-req-input" id="add-req-input-${ti}" onchange="handleAddItemType(${ti},this.value)">
             <option value="">— select item —</option>
-            <option value="✈️ Inbound">✈️ Inbound</option>
-            <option value="✈️ Outbound">✈️ Outbound</option>
+            <option value="➡️ Inbound">➡️ Inbound</option>
+            <option value="⬅️ Outbound">⬅️ Outbound</option>
             <option value="🏨 Stay">🏨 Stay</option>
             <option value="🎁 Gift">🎁 Gift</option>
             <option value="🎟️ Tickets">🎟️ Tickets</option>
@@ -734,19 +735,20 @@ function tripHTML(ti) {
           </select>
           <input class="add-req-input" id="add-req-custom-${ti}" placeholder="Custom item name" style="display:none" oninput="refreshAddItemDetails(${ti},this.value)">
         </div>
-        <input class="add-req-input" type="date" id="add-req-date-${ti}" title="Start date">
-        <select class="add-req-input" id="add-req-status-${ti}">
-          ${STATUSES.map(s => `<option value="${s}"${s==='Not Booked'?' selected':''}>${s}</option>`).join('')}
-        </select>
-      </div>
-      <div class="add-req-fields">
-        <div style="display:flex;align-items:center;gap:8px">
-          <input class="add-req-input" id="add-req-date-end-${ti}" type="date" style="flex:1">
-          <span style="font-size:11px;color:var(--text-tertiary);white-space:nowrap">end date (optional)</span>
-        </div>
         <select class="add-req-input" id="add-req-details-${ti}">
           <option value="">— Details —</option>
         </select>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input class="add-req-input" type="date" id="add-req-date-${ti}" title="Start date" style="flex:1">
+          <span style="font-size:11px;color:var(--text-tertiary)">–</span>
+          <input class="add-req-input" type="date" id="add-req-date-end-${ti}" title="End date" style="flex:1">
+        </div>
+      </div>
+      <div class="add-req-fields">
+        <select class="add-req-input" id="add-req-status-${ti}">
+          ${STATUSES.map(s => `<option value="${s}"${s==='Not Booked'?' selected':''}>${s}</option>`).join('')}
+        </select>
+        <input class="add-req-input" id="add-req-notes-${ti}" placeholder="Notes">
       </div>
       <div class="add-req-actions">
         <button class="add-req-btn" onclick="cancelAddReq(${ti})">Cancel</button>
@@ -912,17 +914,15 @@ function renderTripBody() {
       ${modalItemNameCell(it, ii)}
       </div>
     </td>
+    <td>${modalDetailsCell(it, ii)}</td>
     <td>
-      <div style="display:flex;flex-direction:column;gap:3px;min-width:130px">
-        <input class="table-input" type="date" value="${esc(it.dateStart||'')}" onchange="window._editDraft.items[${ii}].dateStart=this.value;if(!window._editDraft.items[${ii}].dateEnd)window._editDraft.items[${ii}].dateEnd=''" title="Start date">
-        <div style="display:flex;align-items:center;gap:4px">
-          <input class="table-input" type="date" value="${esc(it.dateEnd||'')}" onchange="window._editDraft.items[${ii}].dateEnd=this.value" title="End date (optional)" style="flex:1">
-          <span style="font-size:10px;color:var(--text-tertiary);white-space:nowrap">end</span>
-        </div>
+      <div style="display:flex;align-items:center;gap:4px;white-space:nowrap">
+        <input class="table-input" type="date" value="${esc(it.dateStart||'')}" onchange="window._editDraft.items[${ii}].dateStart=this.value" title="Start date" style="min-width:130px">
+        <span style="color:var(--text-tertiary);font-size:11px">–</span>
+        <input class="table-input" type="date" value="${esc(it.dateEnd||'')}" onchange="window._editDraft.items[${ii}].dateEnd=this.value" title="End date" style="min-width:130px">
       </div>
     </td>
     <td><select class="table-select" onchange="window._editDraft.items[${ii}].status=this.value">${STATUSES.map(s=>`<option value="${s}"${s===it.status?' selected':''}>${s}</option>`).join('')}</select></td>
-    <td>${modalDetailsCell(it, ii)}</td>
     <td><input class="table-input" value="${esc(it.notes||'')}" oninput="window._editDraft.items[${ii}].notes=this.value" placeholder="Notes"></td>
     <td><button class="del-btn" onclick="removeItem(${ii})">&#215;</button></td>
   </tr>`).join('');
@@ -943,9 +943,9 @@ function renderTripBody() {
       </div>
     </div>
     <p class="section-label">Items</p>
-    <div style="overflow-x:auto">
+    <div class="items-table-wrap">
       <table class="items-table">
-        <thead><tr><th>Item</th><th>Date</th><th>Status</th><th>Details</th><th>Notes</th><th style="width:32px"></th></tr></thead>
+        <thead><tr><th style="min-width:160px">Item</th><th style="min-width:170px">Details</th><th style="min-width:280px">Date</th><th style="min-width:150px">Status</th><th style="min-width:180px">Notes</th><th style="width:32px"></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
@@ -1084,6 +1084,8 @@ function toggleAddReq(e, ti) {
     if (dateEnd) dateEnd.value = '';
     const statusSel = document.getElementById('add-req-status-' + ti);
     if (statusSel) statusSel.value = 'Not Booked';
+    const notesInp = document.getElementById('add-req-notes-' + ti);
+    if (notesInp) notesInp.value = '';
   }
 }
 
@@ -1104,7 +1106,8 @@ async function commitAddReq(ti) {
   const dateEnd   = (document.getElementById('add-req-date-end-' + ti) || {}).value || '';
   const status    = (document.getElementById('add-req-status-' + ti) || {}).value || 'Not Booked';
   const details   = (document.getElementById('add-req-details-' + ti) || {}).value || '';
-  trips[ti].items.push({name, date:'', dateStart, dateEnd, status, details, notes:''});
+  const notes     = (document.getElementById('add-req-notes-' + ti) || {}).value || '';
+  trips[ti].items.push({name, date:'', dateStart, dateEnd, status, details, notes});
   expanded[ti] = true;
   updateStats(); updateTabCounts(); renderAll();
   await persist();
@@ -1296,8 +1299,8 @@ const HARDCODED_CFG = {
 connect(HARDCODED_CFG);
 </script>
 <datalist id="req-presets">
-  <option value="✈️ Inbound">
-  <option value="✈️ Outbound">
+  <option value="➡️ Inbound">
+  <option value="⬅️ Outbound">
   <option value="🏨 Stay">
   <option value="🎁 Gift">
   <option value="🎟️ Tickets">
