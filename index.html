@@ -54,12 +54,15 @@
 
   .trip-list { display: flex; flex-direction: column; gap: 10px; }
   .trip-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
-  .trip-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; user-select: none; transition: background 0.15s; }
+  .trip-header { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 12px 16px; cursor: pointer; user-select: none; transition: background 0.15s; }
   .trip-header:hover { background: var(--bg-secondary); }
   .month-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
   .trip-meta { flex: 1; min-width: 0; }
   .trip-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; min-width: 0; }
-  .trip-name { font-size: 15px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 1; }
+  .trip-name { font-size: 15px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+  .trip-header-top { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; margin-bottom: 6px; }
+  .trip-header-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+  .trip-meta-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; min-width: 0; }
   .past-trip .trip-name { color: var(--text-secondary); }
   .past-badge { font-size: 11px; background: var(--bg-secondary); color: var(--text-tertiary); border-radius: 4px; padding: 2px 6px; }
   .trip-date-label { font-size: 13px; color: var(--text-secondary); }
@@ -687,22 +690,25 @@ function tripHTML(ti) {
       <span class="category-banner-text" style="color:${theme.text}">${theme.emoji} ${esc(trip.category)}</span>
     </div>` : ''}
     <div class="trip-header" onclick="handleHeaderClick(event,${ti})">
-      <div class="month-dot" style="background:${st.color}"></div>
-      <div class="trip-meta">
-        <div class="trip-name-row">
-          <span class="trip-name">${esc(trip.name)}</span>
-          <span class="status-pill ${st.pill}">${st.icon} ${st.label}</span>
-
+      <div class="trip-header-top">
+        <div class="month-dot" style="background:${st.color};flex-shrink:0"></div>
+        <span class="trip-name">${esc(trip.name)}</span>
+        <span class="status-pill ${st.pill}" style="flex-shrink:0">${st.icon} ${st.label}</span>
+      </div>
+      <div class="trip-header-bottom">
+        <div class="trip-meta-row">
+          ${displayDate ? `<span class="trip-date-label">${displayDate}</span>` : ''}
+          ${trip.location ? `<span class="trip-location-label" style="margin-top:0">&#128205; ${esc(trip.location)}</span>` : ''}
         </div>
-        ${trip.location ? `<div class="trip-location-label">&#128205; ${esc(trip.location)}</div>` : ''}
-        <div class="trip-date-label">${displayDate}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <div class="progress-wrap">
+            <div class="progress-bar"><div class="progress-fill" id="pf-${ti}" style="width:${pct}%;background:${st.color}"></div></div>
+            <span class="progress-text" id="pt-${ti}">${done}/${total}</span>
+          </div>
+          <button class="btn btn-sm" onclick="openEdit(event,${ti})">Edit</button>
+          <span class="chevron" style="${open?'transform:rotate(180deg)':''}">&#9660;</span>
+        </div>
       </div>
-      <div class="progress-wrap">
-        <div class="progress-bar"><div class="progress-fill" id="pf-${ti}" style="width:${pct}%;background:${st.color}"></div></div>
-        <span class="progress-text" id="pt-${ti}">${done}/${total}</span>
-      </div>
-      <button class="btn btn-sm" onclick="openEdit(event,${ti})">Edit</button>
-      <span class="chevron" style="${open?'transform:rotate(180deg)':''}">&#9660;</span>
     </div>`;
   if (open) {
     // Sort items by dateStart, undated items go last
