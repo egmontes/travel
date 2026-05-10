@@ -353,7 +353,7 @@ const DEFAULT_TRIPS = [
 let trips = JSON.parse(JSON.stringify(DEFAULT_TRIPS));
 let expanded = {};
 let editingIdx = null;
-let editDraft = null;
+
 let db = null;
 let unsub = null;
 let writing = false;
@@ -590,10 +590,10 @@ function openEdit(e,ti) {
   e.stopPropagation();
   editingIdx = ti;
   const t = trips[ti];
-  editDraft = JSON.parse(JSON.stringify(t));
+  window._editDraft = JSON.parse(JSON.stringify(t));
   // Ensure new fields always exist in the draft
-  if (!editDraft.startDate) editDraft.startDate = '';
-  if (editDraft.location === undefined) editDraft.location = '';
+  if (!window._editDraft.startDate) window._editDraft.startDate = '';
+  if (window._editDraft.location === undefined) window._editDraft.location = '';
   document.getElementById('tripModalTitle').textContent = 'Edit trip';
   document.getElementById('delTripBtn').style.display = '';
   renderTripBody();
@@ -602,7 +602,7 @@ function openEdit(e,ti) {
 
 function openAddTrip() {
   editingIdx = null;
-  editDraft = {name:'',startDate:'',location:'',items:[]};
+  window._editDraft = {name:'',startDate:'',location:'',items:[]};
   document.getElementById('tripModalTitle').textContent = 'Add trip';
   document.getElementById('delTripBtn').style.display = 'none';
   renderTripBody();
@@ -610,22 +610,22 @@ function openAddTrip() {
 }
 
 function renderTripBody() {
-  const trip = editDraft;
+  const trip = window._editDraft;
   const rows = trip.items.map((it,ii)=>`<tr>
-    <td><input class="table-input" value="${esc(it.name)}" oninput="editDraft.items[${ii}].name=this.value"></td>
-    <td><input class="table-input" value="${esc(it.date||'')}" oninput="editDraft.items[${ii}].date=this.value" style="max-width:88px"></td>
-    <td><select class="table-select" onchange="editDraft.items[${ii}].status=this.value">${STATUSES.map(s=>`<option value="${s}"${s===it.status?' selected':''}>${s}</option>`).join('')}</select></td>
-    <td><input class="table-input" value="${esc(it.details||'')}" oninput="editDraft.items[${ii}].details=this.value"></td>
+    <td><input class="table-input" value="${esc(it.name)}" oninput="window._editDraft.items[${ii}].name=this.value"></td>
+    <td><input class="table-input" value="${esc(it.date||'')}" oninput="window._editDraft.items[${ii}].date=this.value" style="max-width:88px"></td>
+    <td><select class="table-select" onchange="window._editDraft.items[${ii}].status=this.value">${STATUSES.map(s=>`<option value="${s}"${s===it.status?' selected':''}>${s}</option>`).join('')}</select></td>
+    <td><input class="table-input" value="${esc(it.details||'')}" oninput="window._editDraft.items[${ii}].details=this.value"></td>
     <td><button class="del-btn" onclick="removeItem(${ii})">&#215;</button></td>
   </tr>`).join('');
 
   document.getElementById('tripModalBody').innerHTML = `
     <p class="section-label">Trip details</p>
     <div class="trip-fields-grid">
-      <div class="field-group"><label class="field-label">Trip name</label><input class="field-input" value="${esc(trip.name)}" oninput="editDraft.name=this.value" placeholder="e.g. Ben Wedding"></div>
-      <div class="field-group"><label class="field-label">Date</label><input class="field-input" type="date" value="${esc(trip.startDate||'')}" onchange="editDraft.startDate=this.value"></div>
+      <div class="field-group"><label class="field-label">Trip name</label><input class="field-input" value="${esc(trip.name)}" oninput="window._editDraft.name=this.value" placeholder="e.g. Ben Wedding"></div>
+      <div class="field-group"><label class="field-label">Date</label><input class="field-input" type="date" value="${esc(trip.startDate||'')}" onchange="window._editDraft.startDate=this.value"></div>
     </div>
-    <div class="field-group"><label class="field-label">Location</label><input class="field-input" value="${esc(trip.location||'')}" oninput="editDraft.location=this.value" placeholder="e.g. Austin, TX"></div>
+    <div class="field-group"><label class="field-label">Location</label><input class="field-input" value="${esc(trip.location||'')}" oninput="window._editDraft.location=this.value" placeholder="e.g. Austin, TX"></div>
     <p class="section-label">Requirements</p>
     <div style="overflow-x:auto">
       <table class="items-table">
@@ -636,17 +636,17 @@ function renderTripBody() {
     <button class="add-row-btn" onclick="addItem()">+ Add requirement</button>`;
 }
 
-function addItem() { editDraft.items.push({name:'',date:'',status:'Not Booked',details:''}); renderTripBody(); }
-function removeItem(ii) { editDraft.items.splice(ii,1); renderTripBody(); }
+function addItem() { window._editDraft.items.push({name:'',date:'',status:'Not Booked',details:''}); renderTripBody(); }
+function removeItem(ii) { window._editDraft.items.splice(ii,1); renderTripBody(); }
 
 async function saveTrip() {
-  if (!editDraft.name.trim()) { showToast('Please enter a trip name'); return; }
+  if (!window._editDraft.name.trim()) { showToast('Please enter a trip name'); return; }
   // Sync legacy date field from startDate for backward compat
-  if (editDraft.startDate) {
-    editDraft.month = monthFromDate(editDraft.startDate);
+  if (window._editDraft.startDate) {
+    window._editDraft.month = monthFromDate(window._editDraft.startDate);
   }
-  if (editingIdx===null) trips.push(JSON.parse(JSON.stringify(editDraft)));
-  else trips[editingIdx] = JSON.parse(JSON.stringify(editDraft));
+  if (editingIdx===null) trips.push(JSON.parse(JSON.stringify(window._editDraft)));
+  else trips[editingIdx] = JSON.parse(JSON.stringify(window._editDraft));
   closeModal('tripModal');
   updateStats(); updateTabCounts(); renderAll();
   await persist();
@@ -711,6 +711,8 @@ function showToast(msg) {
 Object.assign(window, { handleHeaderClick, onStatusChange, openEdit, openAddTrip,
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
   closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab });
+
+
 
 function expandAll() { trips.forEach((_,i)=>expanded[i]=true); renderAll(); }
 function collapseAll() { expanded={}; renderAll(); }
