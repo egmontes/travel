@@ -133,6 +133,11 @@
   .tab-nav-wrap { position: relative; }
   .swipe-hint { display: none; font-size: 11px; color: var(--text-tertiary); text-align: center; margin-top: 6px; letter-spacing: 0.02em; }
 
+  .slider-viewport { overflow: hidden; width: 100%; }
+  .slider-track { display: flex; width: 300%; transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform; }
+  .slider-track.dragging { transition: none; }
+  .slider-panel { width: calc(100% / 3); flex-shrink: 0; min-width: 0; }
+
   @media (max-width: 600px) {
     .col-header { display: none; }
     .item-row { grid-template-columns: 1fr; }
@@ -174,9 +179,20 @@
     <div class="swipe-hint" id="swipeHint">&#8592; swipe to switch tabs &#8594;</div>
   </div>
 
-  <div class="trip-list" id="tripList"></div>
-  <div class="add-trip-area">
-    <button class="add-trip-btn" onclick="openAddTrip()">+ Add trip</button>
+  <div class="slider-viewport" id="sliderViewport">
+    <div class="slider-track" id="sliderTrack">
+      <div class="slider-panel" id="panel-upcoming">
+        <div class="trip-list" id="tripList-upcoming"></div>
+        <div class="add-trip-area"><button class="add-trip-btn" onclick="openAddTrip()">+ Add trip</button></div>
+      </div>
+      <div class="slider-panel" id="panel-all">
+        <div class="trip-list" id="tripList-all"></div>
+        <div class="add-trip-area"><button class="add-trip-btn" onclick="openAddTrip()">+ Add trip</button></div>
+      </div>
+      <div class="slider-panel" id="panel-past">
+        <div class="trip-list" id="tripList-past"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -441,48 +457,58 @@ function tripHTML(ti) {
   return h + '</div>';
 }
 
-function filteredIndices() {
+const TABS = ['upcoming', 'all', 'past'];
+
+function indicesFor(tab) {
   return trips.map((_,i) => i).filter(i => {
     const past = isPast(trips[i]);
-    if (activeTab === 'upcoming') return !past;
-    if (activeTab === 'past') return past;
+    if (tab === 'upcoming') return !past;
+    if (tab === 'past') return past;
     return true;
   });
 }
 
 function updateTabCounts() {
-  const upcoming = trips.filter(t => !isPast(t)).length;
-  const past = trips.filter(t => isPast(t)).length;
-  document.getElementById('cnt-upcoming').textContent = upcoming;
+  document.getElementById('cnt-upcoming').textContent = trips.filter(t => !isPast(t)).length;
   document.getElementById('cnt-all').textContent = trips.length;
-  document.getElementById('cnt-past').textContent = past;
+  document.getElementById('cnt-past').textContent = trips.filter(t => isPast(t)).length;
+}
+
+function positionTrack() {
+  const track = document.getElementById('sliderTrack');
+  if (track) track.style.transform = `translateX(${-TABS.indexOf(activeTab) * (100/3)}%)`;
 }
 
 function setTab(tab) {
   activeTab = tab;
-  ['upcoming','all','past'].forEach(t => {
-    document.getElementById('tab-'+t).classList.toggle('active', t === tab);
-  });
-  expanded = {};
-  renderAll();
+  TABS.forEach(t => document.getElementById('tab-'+t).classList.toggle('active', t === tab));
+  positionTrack();
+}
+
+function renderPanel(tab) {
+  const indices = indicesFor(tab);
+  const listEl = document.getElementById('tripList-' + tab);
+  if (!listEl) return;
+  const msgs = { upcoming: 'No upcoming trips', all: 'No trips yet', past: 'No past trips' };
+  listEl.innerHTML = indices.length === 0
+    ? `<div class="empty-state"><div style="font-size:32px;margin-bottom:12px;opacity:0.35">&#9992;</div>${msgs[tab]}</div>`
+    : indices.map(i => tripHTML(i)).join('');
 }
 
 function renderAll() {
-  const indices = filteredIndices();
-  if (indices.length === 0) {
-    const msgs = { upcoming: 'No upcoming trips', all: 'No trips yet', past: 'No past trips' };
-    document.getElementById('tripList').innerHTML = `<div class="empty-state"><div style="font-size:32px;margin-bottom:12px;opacity:0.35">&#9992;</div>${msgs[activeTab]}</div>`;
-    return;
-  }
-  document.getElementById('tripList').innerHTML = indices.map(i => tripHTML(i)).join('');
+  TABS.forEach(t => renderPanel(t));
   updateTabCounts();
+  positionTrack();
 }
 
 function handleHeaderClick(e,ti) {
   if (e.target.closest('.btn')) return;
   expanded[ti] = !expanded[ti];
-  const el = document.getElementById('tc-'+ti);
-  if (el) el.outerHTML = tripHTML(ti);
+  // Re-render this card in all panels that contain it
+  TABS.forEach(tab => {
+    const el = document.querySelector('#tripList-' + tab + ' #tc-' + ti);
+    if (el) el.outerHTML = tripHTML(ti);
+  });
 }
 
 function onStatusChange(ti,ii,val) {
@@ -617,39 +643,89 @@ Object.assign(window, { handleHeaderClick, onStatusChange, openEdit, openAddTrip
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
   closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab });
 
-function expandAll() { filteredIndices().forEach(i=>expanded[i]=true); renderAll(); }
+function expandAll() { trips.forEach((_,i)=>expanded[i]=true); renderAll(); }
 function collapseAll() { expanded={}; renderAll(); }
 
 // ── Swipe gesture support ──
 (function() {
-  let startX = 0, startY = 0, startTime = 0;
   const TABS = ['upcoming', 'all', 'past'];
+  let startX = 0, startY = 0, isDragging = false, isHoriz = null;
+  let dragOffset = 0;
+
+  function getTrack() { return document.getElementById('sliderTrack'); }
+  function panelWidth() { return document.getElementById('sliderViewport').offsetWidth; }
+
+  function baseOffset() {
+    return -TABS.indexOf(activeTab) * (100 / 3);
+  }
+
+  function applyOffset(extra) {
+    const track = getTrack();
+    if (!track) return;
+    track.style.transform = `translateX(calc(${baseOffset()}% + ${extra}px))`;
+  }
 
   document.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
-    startTime = Date.now();
+    isDragging = false;
+    isHoriz = null;
+    dragOffset = 0;
+    const track = getTrack();
+    if (track) track.classList.add('dragging');
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+
+    if (isHoriz === null) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      isHoriz = Math.abs(dx) > Math.abs(dy);
+    }
+
+    if (!isHoriz) return;
+
+    isDragging = true;
+    const cur = TABS.indexOf(activeTab);
+
+    // Resist at edges
+    let limited = dx;
+    if (dx > 0 && cur === 0) limited = dx * 0.2;
+    if (dx < 0 && cur === TABS.length - 1) limited = dx * 0.2;
+
+    dragOffset = limited;
+    applyOffset(dragOffset);
   }, { passive: true });
 
   document.addEventListener('touchend', e => {
-    const dx = e.changedTouches[0].clientX - startX;
-    const dy = e.changedTouches[0].clientY - startY;
-    const dt = Date.now() - startTime;
-    // Must be fast enough, horizontal enough, and long enough
-    if (dt > 400) return;
-    if (Math.abs(dx) < 50) return;
-    if (Math.abs(dy) > Math.abs(dx) * 0.8) return;
+    const track = getTrack();
+    if (track) track.classList.remove('dragging');
+
+    if (!isDragging) { isDragging = false; isHoriz = null; return; }
+    isDragging = false; isHoriz = null;
+
     const cur = TABS.indexOf(activeTab);
-    if (dx < 0 && cur < TABS.length - 1) {
+    const threshold = panelWidth() * 0.25;
+
+    if (dragOffset < -threshold && cur < TABS.length - 1) {
       setTab(TABS[cur + 1]);
       const hint = document.getElementById('swipeHint');
       if (hint) hint.style.display = 'none';
-    }
-    if (dx > 0 && cur > 0) {
+    } else if (dragOffset > threshold && cur > 0) {
       setTab(TABS[cur - 1]);
       const hint = document.getElementById('swipeHint');
       if (hint) hint.style.display = 'none';
+    } else {
+      // Snap back
+      if (track) {
+        track.classList.remove('dragging');
+        applyOffset(0);
+      }
     }
+    dragOffset = 0;
   }, { passive: true });
 })();
 
