@@ -126,8 +126,8 @@
   .items-table { border-collapse: collapse; font-size: 13px; min-width: 700px; }
   .items-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .items-table th { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 8px; text-align: left; border-bottom: 0.5px solid var(--border); font-weight: 500; white-space: nowrap; }
-  .items-table td { padding: 5px 4px; vertical-align: middle; white-space: nowrap; }
-  .items-table tr:not(:last-child) td { border-bottom: 0.5px solid var(--border); }
+  .items-table td { padding: 8px 6px; vertical-align: middle; white-space: nowrap; }
+  .items-table tbody tr:not(:last-child) td { border-bottom: 0.5px solid var(--border); }
   .table-input { font-size: 13px; border: 0.5px solid var(--border-secondary); border-radius: var(--radius-md); padding: 5px 7px; background: var(--bg); color: var(--text); width: 100%; font-family: inherit; box-sizing: border-box; }
   .table-input:focus { outline: none; border-color: var(--text-secondary); }
   .table-select { font-size: 13px; border: 0.5px solid var(--border-secondary); border-radius: var(--radius-md); padding: 5px 6px; background: var(--bg); color: var(--text); width: 100%; font-family: inherit; box-sizing: border-box; }
@@ -572,28 +572,40 @@ function modalItemNameCell(it, ii) {
 
 function modalDetailsCell(it, ii) {
   const opts = detailsOptsFor(it.name);
-  const cur = (it.details || '').replace(/"/g, '&quot;');
-  const listId = opts ? `mdl-list-${ii}` : '';
-  const datalist = opts ? `<datalist id="${listId}">${opts.map(o=>`<option value="${o}">`).join('')}</datalist>` : '';
-  return `${datalist}<input class="table-input" value="${cur}" ${listId ? `list="${listId}"` : ''} placeholder="${opts ? 'select or type…' : 'details…'}" oninput="window._editDraft.items[${ii}].details=this.value">`;
+  const cur = it.details || '';
+  if (opts) {
+    const optsHtml = opts.map(o => `<option value="${o}"${o===cur?' selected':''}>${o}</option>`).join('');
+    return `<select class="table-select" style="width:100%" onchange="window._editDraft.items[${ii}].details=this.value">
+      <option value="">— select —</option>
+      ${optsHtml}
+    </select>`;
+  }
+  return `<input class="table-input" value="${cur.replace(/"/g,'&quot;')}" placeholder="details…" oninput="window._editDraft.items[${ii}].details=this.value">`;
 }
 
 function detailsCell(item, ti, ii) {
   const opts = detailsOptsFor(item.name);
   const cur = item.details || '';
   const url = extractUrl(cur);
-  // If value is a URL, show as a link (even if preset options exist)
+  // If value is a URL, show as a clickable link
   if (url && !item._editingDetails) {
     const rawMatch = cur.match(/(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)*/)?.[0] || cur;
     return `<div style="display:flex;align-items:center;gap:6px;font-size:12px">
       <a href="${url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--info-text,#185fa5);text-decoration:underline;word-break:break-all;flex:1">${esc(rawMatch)}</a>
-      <button onclick="event.stopPropagation();item._editingDetails=true;renderAll()" style="background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:12px;padding:0" title="Edit">✏️</button>
+      <button onclick="event.stopPropagation();trips[${ti}].items[${ii}]._editingDetails=true;renderAll()" style="background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:12px;padding:0" title="Edit">✏️</button>
     </div>`;
   }
-  const listId = opts ? `details-list-${ti}-${ii}` : '';
-  const datalist = opts ? `<datalist id="${listId}">${opts.map(o=>`<option value="${o}">`).join('')}</datalist>` : '';
-  return `${datalist}<input class="table-input" style="font-size:12px;width:100%" value="${cur.replace(/"/g,'&quot;')}" ${listId?`list="${listId}"`:''}
-    placeholder="${opts ? 'select or type…' : 'details…'}"
+  // If preset options exist, use a native <select> — works properly on mobile
+  if (opts) {
+    const optsHtml = opts.map(o => `<option value="${o}"${o===cur?' selected':''}>${o}</option>`).join('');
+    return `<select class="status-select" style="font-size:12px;width:100%" onchange="onDetailChange(${ti},${ii},this.value)">
+      <option value="">— select —</option>
+      ${optsHtml}
+    </select>`;
+  }
+  // No presets — free text input
+  return `<input class="table-input" style="font-size:12px;width:100%" value="${cur.replace(/"/g,'&quot;')}"
+    placeholder="details…"
     onchange="onDetailChange(${ti},${ii},this.value)"
     oninput="onDetailChange(${ti},${ii},this.value)">`;
 }
@@ -1054,11 +1066,12 @@ function refreshAddItemDetails(ti, name) {
   if (!sel) return;
   const opts = detailsOptsFor(name);
   if (!opts) {
-    sel.innerHTML = '<option value="">— N/A —</option>';
+    sel.innerHTML = '<option value="">—</option>';
     sel.disabled = true;
     return;
   }
   sel.disabled = false;
+  sel.value = '';
   sel.innerHTML = '<option value="">— select —</option>' +
     opts.map(o => `<option value="${o}">${o}</option>`).join('');
 }
