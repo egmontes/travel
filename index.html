@@ -59,9 +59,9 @@
   .stat-value.amber { color: var(--amber-text); }
 
   .trip-list { display: flex; flex-direction: column; gap: 10px; }
-  .trip-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; transition: opacity 0.25s, filter 0.25s; }
+  .trip-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; transition: opacity 0.25s, filter 0.25s, border 0.2s, background 0.2s; }
   .trip-card.faded { opacity: 0.35; filter: grayscale(0.4); }
-  .trip-header { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 12px 16px; cursor: pointer; user-select: none; transition: background 0.15s; }
+  .trip-header { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 12px 16px; cursor: pointer; user-select: none; transition: background 0.15s, border 0.15s; }
   .trip-header:hover { background: var(--bg-secondary); }
   .month-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
   .trip-meta { flex: 1; min-width: 0; }
@@ -193,8 +193,10 @@
   .slider-track.dragging { transition: none; }
   .slider-panel { width: calc(100% / 3); flex-shrink: 0; min-width: 0; }
 
+  .mobile-activities-label { display: none; }
   @media (max-width: 600px) {
     .col-header { display: none; }
+    .mobile-activities-label { display: block; font-size: 11px; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; background: var(--bg-secondary); border-bottom: 1px solid var(--trip-border, var(--border)); padding: 7px 16px; }
     .item-row { grid-template-columns: 1fr; }
     .trip-fields-grid { grid-template-columns: 1fr; }
     .tab-nav { width: 100%; }
@@ -712,12 +714,20 @@ function tripHTML(ti) {
   const st = tripStatus(ti);
   const displayDate = trip.startDate ? formatDateDisplay(trip.startDate) : (trip.date||'');
   const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
-  let h = `<div class="trip-card${past?' past-trip':''}" id="tc-${ti}" style="${theme ? `border: 2px solid ${theme.border}; --trip-border: ${theme.border}; --trip-color: ${theme.text}` : ''}">
+  let h = `<div class="trip-card${past?' past-trip':''}" id="tc-${ti}" style="${
+    open
+      ? (theme
+          ? `border: 3px solid ${theme.border}; --trip-border: ${theme.border}; --trip-color: ${theme.text}`
+          : `border: 3px solid var(--border-secondary)`)
+      : (theme
+          ? `border: 2px solid ${theme.border}; --trip-border: ${theme.border}; --trip-color: ${theme.text}`
+          : '')
+  }">
     <div class="category-banner" style="background:${theme ? theme.bg : 'var(--bg-secondary)'};border-bottom:1px solid ${theme ? theme.border : 'var(--border)'};display:flex;align-items:center;justify-content:space-between;padding:6px 12px 6px 16px">
       <span class="category-banner-text" style="color:${theme ? theme.text : 'var(--text-tertiary)'}">${theme ? `${theme.emoji} ${esc(trip.category)}` : '📌 TBD'}</span>
       <button class="btn btn-sm" onclick="openEdit(event,${ti})" style="font-size:11px;padding:3px 8px">Edit</button>
     </div>
-    <div class="trip-header" onclick="handleHeaderClick(event,${ti})">
+    <div class="trip-header" onclick="handleHeaderClick(event,${ti})" style="${open && theme ? `background:${theme.bg}` : ''}">
       <div class="trip-header-top">
         <div class="month-dot" style="background:${st.color};flex-shrink:0"></div>
         <span class="trip-name">${esc(trip.name)}</span>
@@ -750,7 +760,7 @@ function tripHTML(ti) {
         return da - db;
       });
 
-    h += `<div class="trip-items"><div class="col-header"><span class="col-label">Activity</span><span class="col-label">Details</span><span class="col-label">Status</span><span class="col-label">Notes</span></div>`;
+    h += `<div class="trip-items"><div class="col-header"><span class="col-label">Activity</span><span class="col-label">Details</span><span class="col-label">Status</span><span class="col-label">Notes</span></div><div class="mobile-activities-label">📋 Activities</div>`;
     sortedItems.forEach(({item, ii}) => {
       h += `<div class="item-row">
         <div><div class="item-name">${esc(item.name)}</div>${formatItemDate(item)?`<div class="item-date-lbl">${esc(formatItemDate(item))}</div>`:''}</div>
