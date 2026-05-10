@@ -65,6 +65,8 @@
   .trip-date-label { font-size: 13px; color: var(--text-secondary); }
   .trip-location-label { font-size: 12px; color: var(--text-tertiary); margin-top: 1px; }
   .category-badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; background: var(--bg-secondary); color: var(--text-secondary); border: 0.5px solid var(--border); margin-left: 6px; }
+  .category-banner { padding: 6px 16px; text-align: center; }
+  .category-banner-text { font-size: 12px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
   .add-req-row { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; border-top: 0.5px solid var(--border); background: var(--bg-secondary); }
   .add-req-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .add-req-fields.three { grid-template-columns: 1fr 1fr 1fr; }
@@ -617,20 +619,33 @@ function tripStatus(ti) {
   return           { key: 'notstarted',         color: '#ef4444', pill: 'notstarted', label: 'Not started',  icon: '○' };
 }
 
+const CATEGORY_THEME = {
+  'Wedding':  { emoji: '💍', bg: 'rgba(212,83,126,0.08)',  border: 'rgba(212,83,126,0.25)', text: '#99355a' },
+  'Vacation': { emoji: '🌴', bg: 'rgba(29,158,117,0.08)',  border: 'rgba(29,158,117,0.25)', text: '#0f6e56' },
+  'Holiday':  { emoji: '🎄', bg: 'rgba(99,153,34,0.08)',   border: 'rgba(99,153,34,0.25)',  text: '#3b6d11' },
+  'Work':     { emoji: '💼', bg: 'rgba(55,138,221,0.08)',  border: 'rgba(55,138,221,0.25)', text: '#185fa5' },
+  'Party':    { emoji: '🎉', bg: 'rgba(186,117,23,0.08)',  border: 'rgba(186,117,23,0.25)', text: '#854f0b' },
+  'Other':    { emoji: '📌', bg: 'rgba(95,94,90,0.08)',    border: 'rgba(95,94,90,0.2)',    text: '#5f5e5a' },
+};
+
 function tripHTML(ti) {
   const trip = trips[ti], past = isPast(trip), open = !!expanded[ti];
   const [done, total] = progressFor(ti);
   const pct = total ? Math.round(done/total*100) : 0;
   const st = tripStatus(ti);
   const displayDate = trip.startDate ? formatDateDisplay(trip.startDate) : (trip.date||'');
-  let h = `<div class="trip-card${past?' past-trip':''}" id="tc-${ti}">
+  const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
+  let h = `<div class="trip-card${past?' past-trip':''}" id="tc-${ti}" style="${theme ? `border-top: 2px solid ${theme.border}` : ''}">
+    ${theme ? `<div class="category-banner" style="background:${theme.bg};border-bottom:0.5px solid ${theme.border}">
+      <span class="category-banner-text" style="color:${theme.text}">${theme.emoji} ${esc(trip.category)}</span>
+    </div>` : ''}
     <div class="trip-header" onclick="handleHeaderClick(event,${ti})">
       <div class="month-dot" style="background:${st.color}"></div>
       <div class="trip-meta">
         <div class="trip-name-row">
           <span class="trip-name">${esc(trip.name)}</span>
           <span class="status-pill ${st.pill}">${st.icon} ${st.label}</span>
-          ${trip.category ? `<span class="category-badge">${esc(trip.category)}</span>` : ''}
+
         </div>
         ${trip.location ? `<div class="trip-location-label">&#128205; ${esc(trip.location)}</div>` : ''}
         <div class="trip-date-label">${displayDate}</div>
@@ -837,7 +852,7 @@ function renderTripBody() {
       <div class="field-group"><label class="field-label">Category</label>
         <select class="field-input" onchange="window._editDraft.category=this.value">
           <option value="">— Select —</option>
-          ${['Wedding','Vacation','Holiday','Work','Party','Other'].map(c=>`<option value="${c}"${trip.category===c?' selected':''}>${c}</option>`).join('')}
+          ${[['Wedding','💍'],['Vacation','🌴'],['Holiday','🎄'],['Work','💼'],['Party','🎉'],['Other','📌']].map(([c,e])=>`<option value="${c}"${trip.category===c?' selected':''}>${e} ${c}</option>`).join('')}
         </select>
       </div>
     </div>
