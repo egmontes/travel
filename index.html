@@ -133,6 +133,23 @@
   .tab-nav-wrap { position: relative; }
   .swipe-hint { display: none; font-size: 11px; color: var(--text-tertiary); text-align: center; margin-top: 6px; letter-spacing: 0.02em; }
 
+  /* Trip status indicators */
+  .status-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+  .status-pill.complete  { background: #dbeafe; color: #1e40af; }
+  .status-pill.ready     { background: #dcfce7; color: #166534; }
+  .status-pill.progress  { background: #fef9c3; color: #854d0e; }
+  .status-pill.attention { background: #ffedd5; color: #9a3412; }
+  .status-pill.notstarted{ background: #fee2e2; color: #991b1b; }
+  .month-dot { transition: background 0.3s; }
+
+  @media (prefers-color-scheme: dark) {
+    .status-pill.complete  { background: #1e3a6e; color: #93c5fd; }
+    .status-pill.ready     { background: #14532d; color: #86efac; }
+    .status-pill.progress  { background: #422006; color: #fcd34d; }
+    .status-pill.attention { background: #431407; color: #fdba74; }
+    .status-pill.notstarted{ background: #450a0a; color: #fca5a5; }
+  }
+
   .slider-viewport { overflow: hidden; width: 100%; }
   .slider-track { display: flex; width: 300%; transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform; }
   .slider-track.dragging { transition: none; }
@@ -422,20 +439,39 @@ function updateStats() {
 }
 
 // ── Render ──
+function tripStatus(ti) {
+  const trip = trips[ti];
+  const past = isPast(trip);
+  const total = trip.items.length;
+  if (total === 0) return { key: 'notstarted', color: '#ef4444', pill: 'notstarted', label: 'Not started', icon: '○' };
+  const done = trip.items.filter(it => it.status === 'Booked' || it.status === 'Confirmed').length;
+  const pct = done / total;
+  if (past) {
+    return { key: 'complete', color: '#3b82f6', pill: 'complete', label: 'Complete', icon: '✓' };
+  }
+  if (pct === 1)   return { key: 'ready',      color: '#22c55e', pill: 'ready',      label: 'All set',      icon: '✓' };
+  if (pct >= 0.5)  return { key: 'progress',   color: '#eab308', pill: 'progress',   label: 'In progress',  icon: '◑' };
+  if (pct > 0)     return { key: 'attention',  color: '#f97316', pill: 'attention',  label: 'Needs work',   icon: '!' };
+  return           { key: 'notstarted',         color: '#ef4444', pill: 'notstarted', label: 'Not started',  icon: '○' };
+}
+
 function tripHTML(ti) {
   const trip = trips[ti], past = isPast(trip), open = !!expanded[ti];
   const [done, total] = progressFor(ti);
   const pct = total ? Math.round(done/total*100) : 0;
-  const color = MONTH_COLORS[trip.month % MONTH_COLORS.length];
+  const st = tripStatus(ti);
   let h = `<div class="trip-card${past?' past-trip':''}" id="tc-${ti}">
     <div class="trip-header" onclick="handleHeaderClick(event,${ti})">
-      <div class="month-dot" style="background:${color}"></div>
+      <div class="month-dot" style="background:${st.color}"></div>
       <div class="trip-meta">
-        <div class="trip-name-row"><span class="trip-name">${esc(trip.name)}</span>${past?'<span class="past-badge">past</span>':''}</div>
+        <div class="trip-name-row">
+          <span class="trip-name">${esc(trip.name)}</span>
+          <span class="status-pill ${st.pill}">${st.icon} ${st.label}</span>
+        </div>
         <div class="trip-date-label">${esc(trip.date)}</div>
       </div>
       <div class="progress-wrap">
-        <div class="progress-bar"><div class="progress-fill" id="pf-${ti}" style="width:${pct}%;background:${color}"></div></div>
+        <div class="progress-bar"><div class="progress-fill" id="pf-${ti}" style="width:${pct}%;background:${st.color}"></div></div>
         <span class="progress-text" id="pt-${ti}">${done}/${total}</span>
       </div>
       <button class="btn btn-sm" onclick="openEdit(event,${ti})">Edit</button>
