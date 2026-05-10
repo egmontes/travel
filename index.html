@@ -64,7 +64,7 @@
   .month-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
   .trip-meta { flex: 1; min-width: 0; }
   .trip-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; min-width: 0; }
-  .trip-name { font-size: 15px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+  .trip-name { font-size: 15px; font-weight: 700; color: var(--trip-color, var(--text)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; text-transform: uppercase; letter-spacing: 0.04em; }
   .trip-header-top { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; margin-bottom: 6px; }
   .trip-header-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
   .trip-meta-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; min-width: 0; }
@@ -105,7 +105,7 @@
   .col-header { display: grid; grid-template-columns: 1fr 150px 150px 1fr; gap: 10px; padding: 7px 16px; background: var(--bg-secondary); border-bottom: 1px solid var(--trip-border, var(--border)); }
   .col-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
   .item-row { display: grid; grid-template-columns: 1fr 150px 150px 1fr; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid var(--trip-border, var(--border)); }
-  .item-name { font-size: 14px; color: var(--text); }
+  .item-name { font-size: 14px; font-weight: 700; color: var(--trip-color, var(--text)); text-transform: uppercase; letter-spacing: 0.03em; }
   .item-date-lbl { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
   .item-details-lbl { font-size: 13px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .status-select { font-size: 13px; border: 1px solid var(--border-secondary); border-radius: var(--radius-md); padding: 5px 8px; background: var(--bg); color: var(--text); cursor: pointer; width: 100%; font-family: inherit; }
@@ -685,16 +685,11 @@ function tripHTML(ti) {
   const st = tripStatus(ti);
   const displayDate = trip.startDate ? formatDateDisplay(trip.startDate) : (trip.date||'');
   const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
-  let h = `<div class="trip-card${past?' past-trip':''}" id="tc-${ti}" style="${theme ? `border: 2px solid ${theme.border}; --trip-border: ${theme.border}` : ''}">
-    ${theme
-      ? `<div class="category-banner" style="background:${theme.bg};border-bottom:1px solid ${theme.border};display:flex;align-items:center;justify-content:space-between;padding:6px 12px 6px 16px">
-        <span class="category-banner-text" style="color:${theme.text}">${theme.emoji} ${esc(trip.category)}</span>
-        <button class="btn btn-sm" onclick="openEdit(event,${ti})" style="font-size:11px;padding:3px 8px">Edit</button>
-      </div>`
-      : `<div style="display:flex;justify-content:flex-end;padding:6px 12px 0">
-        <button class="btn btn-sm" onclick="openEdit(event,${ti})" style="font-size:11px;padding:3px 8px">Edit</button>
-      </div>`
-    }
+  let h = `<div class="trip-card${past?' past-trip':''}" id="tc-${ti}" style="${theme ? `border: 2px solid ${theme.border}; --trip-border: ${theme.border}; --trip-color: ${theme.text}` : ''}">
+    <div class="category-banner" style="background:${theme ? theme.bg : 'var(--bg-secondary)'};border-bottom:1px solid ${theme ? theme.border : 'var(--border)'};display:flex;align-items:center;justify-content:space-between;padding:6px 12px 6px 16px">
+      <span class="category-banner-text" style="color:${theme ? theme.text : 'var(--text-tertiary)'}">${theme ? `${theme.emoji} ${esc(trip.category)}` : '📌 TBD'}</span>
+      <button class="btn btn-sm" onclick="openEdit(event,${ti})" style="font-size:11px;padding:3px 8px">Edit</button>
+    </div>
     <div class="trip-header" onclick="handleHeaderClick(event,${ti})">
       <div class="trip-header-top">
         <div class="month-dot" style="background:${st.color};flex-shrink:0"></div>
