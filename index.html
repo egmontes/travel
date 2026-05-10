@@ -65,9 +65,11 @@
   .trip-date-label { font-size: 13px; color: var(--text-secondary); }
   .trip-location-label { font-size: 12px; color: var(--text-tertiary); margin-top: 1px; }
   .category-badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; background: var(--bg-secondary); color: var(--text-secondary); border: 0.5px solid var(--border); margin-left: 6px; }
-  .add-req-row { display: flex; flex-direction: column; gap: 8px; padding: 10px 16px; border-top: 0.5px solid var(--border); background: var(--bg-secondary); }
-  .add-req-fields { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .add-req-row { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; border-top: 0.5px solid var(--border); background: var(--bg-secondary); }
+  .add-req-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .add-req-fields.three { grid-template-columns: 1fr 1fr 1fr; }
   .add-req-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .add-req-section { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; margin-bottom: -2px; }
   .add-req-input { font-size: 13px; border: 0.5px solid var(--border-secondary); border-radius: var(--radius-md); padding: 5px 10px; background: var(--bg); color: var(--text); font-family: inherit; flex: 1; min-width: 0; }
   .add-req-input:focus { outline: none; border-color: var(--text-secondary); }
   .add-req-btn { font-size: 12px; padding: 5px 12px; border-radius: var(--radius-md); border: 0.5px solid var(--border-secondary); background: transparent; color: var(--text-secondary); cursor: pointer; font-family: inherit; white-space: nowrap; }
@@ -90,9 +92,9 @@
 
   .chevron { font-size: 11px; color: var(--text-tertiary); margin-left: 2px; transition: transform 0.2s; display: inline-block; }
   .trip-items { border-top: 0.5px solid var(--border); }
-  .col-header { display: grid; grid-template-columns: 1fr 140px 140px 1fr; gap: 10px; padding: 7px 16px; background: var(--bg-secondary); }
+  .col-header { display: grid; grid-template-columns: 1fr 150px 150px 1fr; gap: 10px; padding: 7px 16px; background: var(--bg-secondary); }
   .col-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
-  .item-row { display: grid; grid-template-columns: 1fr 140px 140px 1fr; align-items: center; gap: 10px; padding: 10px 16px; border-top: 0.5px solid var(--border); }
+  .item-row { display: grid; grid-template-columns: 1fr 150px 150px 1fr; align-items: center; gap: 10px; padding: 10px 16px; border-top: 0.5px solid var(--border); }
   .item-name { font-size: 14px; color: var(--text); }
   .item-date-lbl { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
   .item-details-lbl { font-size: 13px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -542,21 +544,21 @@ function detailsOptsFor(name) {
 
 function modalDetailsCell(it, ii) {
   const opts = detailsOptsFor(it.name);
-  if (!opts) return '<span style="font-size:12px;color:var(--text-tertiary)">N/A</span>';
-  const cur = it.details || '';
-  const optsHtml = opts.map(o => `<option value="${o}"${o === cur ? ' selected' : ''}>${o}</option>`).join('');
-  return `<select class="table-select" onchange="window._editDraft.items[${ii}].details=this.value"><option value="">— select —</option>${optsHtml}</select>`;
+  const cur = (it.details || '').replace(/"/g, '&quot;');
+  const listId = opts ? `mdl-list-${ii}` : '';
+  const datalist = opts ? `<datalist id="${listId}">${opts.map(o=>`<option value="${o}">`).join('')}</datalist>` : '';
+  return `${datalist}<input class="table-input" value="${cur}" ${listId ? `list="${listId}"` : ''} placeholder="${opts ? 'select or type…' : 'details…'}" oninput="window._editDraft.items[${ii}].details=this.value">`;
 }
 
 function detailsCell(item, ti, ii) {
   const opts = detailsOptsFor(item.name);
-  if (!opts) return `<div class="item-details-lbl" style="color:var(--text-tertiary)">—</div>`;
   const cur = item.details || '';
-  const sel = opts.find(o => o === cur) ? cur : '';
-  return `<select class="status-select" style="font-size:12px" onchange="onDetailChange(${ti},${ii},this.value)">
-    <option value="">— select —</option>
-    ${opts.map(o => `<option value="${o}"${o===cur?' selected':''}>${o}</option>`).join('')}
-  </select>`;
+  const listId = opts ? `details-list-${ti}-${ii}` : '';
+  const datalist = opts ? `<datalist id="${listId}">${opts.map(o=>`<option value="${o}">`).join('')}</datalist>` : '';
+  return `${datalist}<input class="table-input" style="font-size:12px;width:100%" value="${cur.replace(/"/g,'&quot;')}" ${listId?`list="${listId}"`:''}
+    placeholder="${opts ? 'select or type…' : 'details…'}"
+    onchange="onDetailChange(${ti},${ii},this.value)"
+    oninput="onDetailChange(${ti},${ii},this.value)">`;
 }
 
 function statusColorClass(status) {
@@ -653,14 +655,14 @@ function tripHTML(ti) {
         return da - db;
       });
 
-    h += `<div class="trip-items"><div class="col-header"><span class="col-label">Item</span><span class="col-label">Status</span><span class="col-label">Details</span><span class="col-label">Notes</span></div>`;
+    h += `<div class="trip-items"><div class="col-header"><span class="col-label">Item</span><span class="col-label">Details</span><span class="col-label">Status</span><span class="col-label">Notes</span></div>`;
     sortedItems.forEach(({item, ii}) => {
       h += `<div class="item-row">
         <div><div class="item-name">${esc(item.name)}</div>${formatItemDate(item)?`<div class="item-date-lbl">${esc(formatItemDate(item))}</div>`:''}</div>
+        ${detailsCell(item,ti,ii)}
         <select class="status-select ${statusColorClass(item.status)}" onchange="onStatusChange(${ti},${ii},this.value);this.className='status-select '+statusColorClass(this.value)">
           ${STATUSES.map(s=>`<option value="${s}"${s===item.status?' selected':''}>${s}</option>`).join('')}
         </select>
-        ${detailsCell(item,ti,ii)}
         <div class="item-details-lbl">${esc(item.notes||'')||'—'}</div>
       </div>`;
     });
@@ -668,20 +670,25 @@ function tripHTML(ti) {
       <span style="font-size:16px;line-height:1">+</span> Add item
     </div>
     <div class="add-req-row" id="add-req-row-${ti}" style="display:none">
-      <div class="add-req-fields">
-        <input class="add-req-input" list="req-presets" id="add-req-input-${ti}" placeholder="Item name" onkeydown="handleAddReqKey(event,${ti})">
+      <div class="add-req-fields three">
+        <input class="add-req-input" list="req-presets" id="add-req-input-${ti}" placeholder="Item name" onkeydown="handleAddReqKey(event,${ti})" oninput="refreshAddItemDetails(${ti},this.value)">
         <input class="add-req-input" type="date" id="add-req-date-${ti}" title="Start date">
         <select class="add-req-input" id="add-req-status-${ti}">
           ${STATUSES.map(s => `<option value="${s}"${s==='Not Booked'?' selected':''}>${s}</option>`).join('')}
         </select>
       </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <input class="add-req-input" id="add-req-date-end-${ti}" type="date" title="End date (optional)" style="flex:1">
-        <span style="font-size:11px;color:var(--text-tertiary);white-space:nowrap">end date (optional)</span>
+      <div class="add-req-fields">
+        <div style="display:flex;align-items:center;gap:8px">
+          <input class="add-req-input" id="add-req-date-end-${ti}" type="date" style="flex:1">
+          <span style="font-size:11px;color:var(--text-tertiary);white-space:nowrap">end date (optional)</span>
+        </div>
+        <select class="add-req-input" id="add-req-details-${ti}">
+          <option value="">— Details —</option>
+        </select>
       </div>
       <div class="add-req-actions">
         <button class="add-req-btn" onclick="cancelAddReq(${ti})">Cancel</button>
-        <button class="add-req-btn" style="color:var(--text);border-color:var(--border-secondary)" onclick="commitAddReq(${ti})">Add</button>
+        <button class="add-req-btn" style="color:var(--text);border-color:var(--border-secondary);font-weight:500" onclick="commitAddReq(${ti})">Add item</button>
       </div>
     </div>`;
     h += '</div>';
@@ -841,6 +848,97 @@ function renderTripBody() {
 
 function addItem() { window._editDraft.items.push({name:'',date:'',dateStart:'',dateEnd:'',status:'Not Booked',details:''}); renderTripBody(); }
 
+// Field configs per item type
+const ITEM_FIELD_CONFIGS = {
+  Inbound: [
+    {id:'transport', label:'Transport', type:'select', opts:['✈️ Plane','🚂 Train','🚗 Car','⛵ Boat','🔘 Other']},
+    {id:'confirmation', label:'Confirmation #', type:'text', placeholder:'e.g. ABC123'},
+    {id:'dateStart', label:'Date', type:'date'},
+    {id:'depart', label:'Departure time', type:'time'},
+    {id:'arrive', label:'Arrival time', type:'time'},
+    {id:'notes', label:'Notes', type:'text', placeholder:'Airline, terminal, etc.'},
+  ],
+  Outbound: [
+    {id:'transport', label:'Transport', type:'select', opts:['✈️ Plane','🚂 Train','🚗 Car','⛵ Boat','🔘 Other']},
+    {id:'confirmation', label:'Confirmation #', type:'text', placeholder:'e.g. ABC123'},
+    {id:'dateStart', label:'Date', type:'date'},
+    {id:'depart', label:'Departure time', type:'time'},
+    {id:'arrive', label:'Arrival time', type:'time'},
+    {id:'notes', label:'Notes', type:'text', placeholder:'Airline, terminal, etc.'},
+  ],
+  Stay: [
+    {id:'transport', label:'Type', type:'select', opts:['🏨 Hotel','🏡 Rental','🏠 Home','🔘 Other']},
+    {id:'notes', label:'Name / address', type:'text', placeholder:'e.g. Marriott Downtown'},
+    {id:'dateStart', label:'Check-in', type:'date'},
+    {id:'dateEnd', label:'Check-out', type:'date'},
+    {id:'confirmation', label:'Confirmation #', type:'text', placeholder:'e.g. ABC123'},
+  ],
+  Gift: [
+    {id:'transport', label:'Type', type:'select', opts:['🎀 Registry','🎂 Birthday','🔘 Other']},
+    {id:'notes', label:'Link or amount', type:'text', placeholder:'e.g. zola.com/… or $100'},
+    {id:'dateStart', label:'Date needed by', type:'date'},
+  ],
+  Tickets: [
+    {id:'confirmation', label:'Confirmation #', type:'text', placeholder:'e.g. ABC123'},
+    {id:'dateStart', label:'Event date', type:'date'},
+    {id:'notes', label:'Notes', type:'text', placeholder:'Seats, gate, etc.'},
+  ],
+  Registration: [
+    {id:'confirmation', label:'Confirmation #', type:'text', placeholder:'e.g. ABC123'},
+    {id:'notes', label:'Link', type:'text', placeholder:'e.g. registration URL'},
+    {id:'dateStart', label:'Deadline', type:'date'},
+  ],
+  Equipment: [
+    {id:'transport', label:'Type', type:'select', opts:['🛒 Rental','🏠 Owned','🛍️ Purchase']},
+    {id:'notes', label:'Description', type:'text', placeholder:'e.g. Ski boots, size 10'},
+    {id:'dateStart', label:'Needed by', type:'date'},
+  ],
+  Other: [
+    {id:'dateStart', label:'Start date', type:'date'},
+    {id:'dateEnd', label:'End date', type:'date'},
+    {id:'notes', label:'Notes', type:'text', placeholder:'Any details'},
+  ],
+};
+
+function refreshAddReqFields(ti) {
+  const typeEl = document.getElementById('add-req-type-' + ti);
+  const container = document.getElementById('add-req-dynamic-' + ti);
+  if (!typeEl || !container) return;
+  const type = typeEl.value;
+  const fields = ITEM_FIELD_CONFIGS[type];
+  if (!fields) { container.innerHTML = ''; return; }
+
+  const cols = fields.length <= 3 ? fields.length : 3;
+  container.innerHTML = `<div class="add-req-fields ${cols === 3 ? 'three' : ''}" style="grid-template-columns:repeat(${Math.min(cols,3)},1fr)">
+    ${fields.map(f => `<div>
+      <div class="add-req-section">${f.label}</div>
+      ${f.type === 'select'
+        ? `<select class="add-req-input" id="arf-${ti}-${f.id}"><option value="">— select —</option>${f.opts.map(o=>`<option value="${o}">${o}</option>`).join('')}</select>`
+        : `<input class="add-req-input" id="arf-${ti}-${f.id}" type="${f.type}" placeholder="${f.placeholder||''}">`
+      }
+    </div>`).join('')}
+  </div>`;
+}
+
+function getAddReqField(ti, id) {
+  const el = document.getElementById(`arf-${ti}-${id}`);
+  return el ? el.value : '';
+}
+
+function refreshAddItemDetails(ti, name) {
+  const sel = document.getElementById('add-req-details-' + ti);
+  if (!sel) return;
+  const opts = detailsOptsFor(name);
+  if (!opts) {
+    sel.innerHTML = '<option value="">— N/A —</option>';
+    sel.disabled = true;
+    return;
+  }
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">— select —</option>' +
+    opts.map(o => `<option value="${o}">${o}</option>`).join('');
+}
+
 function toggleAddReq(e, ti) {
   e.stopPropagation();
   const row = document.getElementById('add-req-row-' + ti);
@@ -870,7 +968,8 @@ async function commitAddReq(ti) {
   const dateStart = (document.getElementById('add-req-date-' + ti) || {}).value || '';
   const dateEnd   = (document.getElementById('add-req-date-end-' + ti) || {}).value || '';
   const status    = (document.getElementById('add-req-status-' + ti) || {}).value || 'Not Booked';
-  trips[ti].items.push({name, date:'', dateStart, dateEnd, status, details:''});
+  const details   = (document.getElementById('add-req-details-' + ti) || {}).value || '';
+  trips[ti].items.push({name, date:'', dateStart, dateEnd, status, details, notes:''});
   expanded[ti] = true;
   updateStats(); updateTabCounts(); renderAll();
   await persist();
@@ -955,7 +1054,8 @@ function showToast(msg) {
 Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, detailsOptsFor, detailsCell, modalDetailsCell, openEdit, openAddTrip, statusColorClass,
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
   closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab,
-  toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey });
+  toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey,
+  refreshAddReqFields, getAddReqField, refreshAddItemDetails });
 
 
 
