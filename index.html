@@ -1452,6 +1452,18 @@ function collapseAll() { expanded={}; renderAll(); updateFade(); }
   }, { passive: true });
 })();
 
+// ── Scroll chaining for trip-items ──
+document.addEventListener('wheel', function(e) {
+  const el = e.target.closest('.trip-items');
+  if (!el) return;
+  const atTop = el.scrollTop === 0;
+  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+  if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) {
+    e.preventDefault();
+    window.scrollBy(0, e.deltaY);
+  }
+}, { passive: false });
+
 // ── Init ──
 updateStats(); updateTabCounts(); renderAll();
 
