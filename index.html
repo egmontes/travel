@@ -589,7 +589,11 @@ function onStatusChange(ti,ii,val) {
 function openEdit(e,ti) {
   e.stopPropagation();
   editingIdx = ti;
-  editDraft = JSON.parse(JSON.stringify(trips[ti]));
+  const t = trips[ti];
+  editDraft = JSON.parse(JSON.stringify(t));
+  // Ensure new fields always exist in the draft
+  if (!editDraft.startDate) editDraft.startDate = '';
+  if (editDraft.location === undefined) editDraft.location = '';
   document.getElementById('tripModalTitle').textContent = 'Edit trip';
   document.getElementById('delTripBtn').style.display = '';
   renderTripBody();
