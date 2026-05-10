@@ -189,9 +189,9 @@
   .details-opt:hover { background: var(--bg-secondary); }
 
   .slider-viewport { overflow: hidden; width: 100%; }
-  .slider-track { display: flex; width: 300%; transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform; }
+  .slider-track { display: flex; width: 300%; transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform; gap: 0; }
   .slider-track.dragging { transition: none; }
-  .slider-panel { width: calc(100% / 3); flex-shrink: 0; min-width: 0; }
+  .slider-panel { width: calc(100% / 3); flex-shrink: 0; min-width: 0; padding: 0 8px; box-sizing: border-box; }
 
   .mobile-activities-label { display: none; }
   @media (max-width: 600px) {
