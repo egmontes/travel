@@ -580,6 +580,15 @@ function modalDetailsCell(it, ii) {
 function detailsCell(item, ti, ii) {
   const opts = detailsOptsFor(item.name);
   const cur = item.details || '';
+  const url = extractUrl(cur);
+  // If value is a URL, show as a link (even if preset options exist)
+  if (url && !item._editingDetails) {
+    const rawMatch = cur.match(/(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)*/)?.[0] || cur;
+    return `<div style="display:flex;align-items:center;gap:6px;font-size:12px">
+      <a href="${url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--info-text,#185fa5);text-decoration:underline;word-break:break-all;flex:1">${esc(rawMatch)}</a>
+      <button onclick="event.stopPropagation();item._editingDetails=true;renderAll()" style="background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:12px;padding:0" title="Edit">✏️</button>
+    </div>`;
+  }
   const listId = opts ? `details-list-${ti}-${ii}` : '';
   const datalist = opts ? `<datalist id="${listId}">${opts.map(o=>`<option value="${o}">`).join('')}</datalist>` : '';
   return `${datalist}<input class="table-input" style="font-size:12px;width:100%" value="${cur.replace(/"/g,'&quot;')}" ${listId?`list="${listId}"`:''}
@@ -703,7 +712,7 @@ function tripHTML(ti) {
         <select class="status-select ${statusColorClass(item.status)}" onchange="onStatusChange(${ti},${ii},this.value);this.className='status-select '+statusColorClass(this.value)">
           ${STATUSES.map(s=>`<option value="${s}"${s===item.status?' selected':''}>${s}</option>`).join('')}
         </select>
-        <input class="table-input" style="font-size:13px;width:100%" value="${(item.notes||''). replace(/"/g,'&quot;')}" placeholder="notes…" onchange="onNotesChange(${ti},${ii},this.value)" oninput="onNotesChange(${ti},${ii},this.value)">
+        ${notesCell(item,ti,ii)}
       </div>`;
     });
     h += `<div class="add-req-trigger" onclick="toggleAddReq(event,${ti})" id="add-req-trigger-${ti}">
@@ -815,6 +824,46 @@ function handleHeaderClick(e,ti) {
 function onDetailChange(ti, ii, val) {
   trips[ti].items[ii].details = val;
   persist();
+}
+
+function extractUrl(text) {
+  if (!text) return null;
+  // Match http(s):// URLs or bare domain URLs like zola.com/...
+  const m = text.match(/(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?/);
+  if (!m) return null;
+  const url = m[0];
+  // Return with protocol so the link works
+  return url.startsWith('http') ? url : 'https://' + url;
+}
+
+function notesCell(item, ti, ii) {
+  const notes = item.notes || '';
+  const url = extractUrl(notes);
+  const safeVal = notes.replace(/"/g, '&quot;');
+  if (url && !item._editingNotes) {
+    // Show text with clickable link + pencil to edit
+    const display = esc(notes);
+    // Match the original text (without protocol) for replacement
+    const rawMatch = notes.match(/(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)*/)?.[0] || '';
+    const linked = display.replace(esc(rawMatch), `<a href="${url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--info-text,#185fa5);text-decoration:underline;word-break:break-all">${esc(rawMatch)}</a>`);
+    return `<div style="display:flex;align-items:flex-start;gap:6px;font-size:13px">
+      <span style="flex:1;line-height:1.4">${linked}</span>
+      <button onclick="event.stopPropagation();switchNotesToEdit(${ti},${ii})" style="background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:13px;padding:0;flex-shrink:0" title="Edit">✏️</button>
+    </div>`;
+  }
+  return `<input class="table-input" style="font-size:13px;width:100%" value="${safeVal}"
+    placeholder="notes…"
+    onchange="onNotesChange(${ti},${ii},this.value)"
+    oninput="onNotesChange(${ti},${ii},this.value)">`;
+}
+
+function switchNotesToEdit(ti, ii) {
+  // Re-render just this item row so the input appears
+  trips[ti].items[ii]._editingNotes = true;
+  TABS.forEach(tab => {
+    const el = document.querySelector('#tripList-' + tab + ' #tc-' + ti);
+    if (el) el.outerHTML = tripHTML(ti);
+  });
 }
 
 function onNotesChange(ti, ii, val) {
@@ -1141,7 +1190,7 @@ Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, detai
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
   closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab,
   toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey,
-  refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell });
+  refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell, notesCell, switchNotesToEdit, extractUrl });
 
 
 
