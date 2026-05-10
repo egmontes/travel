@@ -952,7 +952,7 @@ function renderTripBody() {
       ${modalItemNameCell(it, ii)}
       </div>
     </td>
-    <td>${modalDetailsCell(it, ii)}</td>
+    <td id="modal-details-cell-${ii}">${modalDetailsCell(it, ii)}</td>
     <td>
       <div style="display:flex;align-items:center;gap:4px;white-space:nowrap">
         <input class="table-input" type="date" value="${esc(it.dateStart||'')}" onchange="window._editDraft.items[${ii}].dateStart=this.value" title="Start date" style="min-width:130px">
@@ -1077,6 +1077,12 @@ function handleModalItemType(ii, val) {
   } else {
     if (custom) custom.style.display = 'none';
     window._editDraft.items[ii].name = val;
+  }
+  // Immediately update the details cell for the new item type
+  const detailsContainer = document.getElementById('modal-details-cell-' + ii);
+  if (detailsContainer) {
+    const name = val === '__custom__' ? (custom?.value || '') : val;
+    detailsContainer.innerHTML = modalDetailsCell({...window._editDraft.items[ii], name}, ii);
   }
 }
 
