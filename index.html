@@ -663,7 +663,7 @@ function tripHTML(ti) {
         <select class="status-select ${statusColorClass(item.status)}" onchange="onStatusChange(${ti},${ii},this.value);this.className='status-select '+statusColorClass(this.value)">
           ${STATUSES.map(s=>`<option value="${s}"${s===item.status?' selected':''}>${s}</option>`).join('')}
         </select>
-        <div class="item-details-lbl">${esc(item.notes||'')||'—'}</div>
+        <input class="table-input" style="font-size:13px;width:100%" value="${(item.notes||''). replace(/"/g,'&quot;')}" placeholder="notes…" onchange="onNotesChange(${ti},${ii},this.value)" oninput="onNotesChange(${ti},${ii},this.value)">
       </div>`;
     });
     h += `<div class="add-req-trigger" onclick="toggleAddReq(event,${ti})" id="add-req-trigger-${ti}">
@@ -761,6 +761,11 @@ function handleHeaderClick(e,ti) {
 
 function onDetailChange(ti, ii, val) {
   trips[ti].items[ii].details = val;
+  persist();
+}
+
+function onNotesChange(ti, ii, val) {
+  trips[ti].items[ii].notes = val;
   persist();
 }
 
@@ -1055,7 +1060,7 @@ Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, detai
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
   closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab,
   toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey,
-  refreshAddReqFields, getAddReqField, refreshAddItemDetails });
+  refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange });
 
 
 
