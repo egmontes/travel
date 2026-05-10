@@ -635,7 +635,7 @@ function tripHTML(ti) {
   const st = tripStatus(ti);
   const displayDate = trip.startDate ? formatDateDisplay(trip.startDate) : (trip.date||'');
   const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
-  let h = `<div class="trip-card${past?' past-trip':''}" id="tc-${ti}" style="${theme ? `border-top: 2px solid ${theme.border}` : ''}">
+  let h = `<div class="trip-card${past?' past-trip':''}" id="tc-${ti}" style="${theme ? `border: 1.5px solid ${theme.border}` : ''}">
     ${theme ? `<div class="category-banner" style="background:${theme.bg};border-bottom:0.5px solid ${theme.border}">
       <span class="category-banner-text" style="color:${theme.text}">${theme.emoji} ${esc(trip.category)}</span>
     </div>` : ''}
