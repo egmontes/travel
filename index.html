@@ -64,6 +64,7 @@
   .past-badge { font-size: 11px; background: var(--bg-secondary); color: var(--text-tertiary); border-radius: 4px; padding: 2px 6px; }
   .trip-date-label { font-size: 13px; color: var(--text-secondary); }
   .trip-location-label { font-size: 12px; color: var(--text-tertiary); margin-top: 1px; }
+  .category-badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; background: var(--bg-secondary); color: var(--text-secondary); border: 0.5px solid var(--border); margin-left: 6px; }
   .progress-wrap { display: flex; align-items: center; gap: 8px; }
   .progress-bar { width: 56px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
   .progress-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
@@ -410,6 +411,11 @@ async function connect(cfg) {
         t.location = '';
         needsMigration = true;
       }
+      // Ensure category field exists
+      if (t.category === undefined) {
+        t.category = '';
+        needsMigration = true;
+      }
       return t;
     });
 
@@ -530,6 +536,7 @@ function tripHTML(ti) {
         <div class="trip-name-row">
           <span class="trip-name">${esc(trip.name)}</span>
           <span class="status-pill ${st.pill}">${st.icon} ${st.label}</span>
+          ${trip.category ? `<span class="category-badge">${esc(trip.category)}</span>` : ''}
         </div>
         ${trip.location ? `<div class="trip-location-label">&#128205; ${esc(trip.location)}</div>` : ''}
         <div class="trip-date-label">${displayDate}</div>
@@ -638,6 +645,7 @@ function openEdit(e,ti) {
   // Ensure new fields always exist in the draft
   if (!window._editDraft.startDate) window._editDraft.startDate = '';
   if (window._editDraft.location === undefined) window._editDraft.location = '';
+  if (window._editDraft.category === undefined) window._editDraft.category = '';
   document.getElementById('tripModalTitle').textContent = 'Edit trip';
   document.getElementById('delTripBtn').style.display = '';
   renderTripBody();
@@ -646,7 +654,7 @@ function openEdit(e,ti) {
 
 function openAddTrip() {
   editingIdx = null;
-  window._editDraft = {name:'',startDate:'',location:'',items:[]};
+  window._editDraft = {name:'',startDate:'',location:'',category:'',items:[]};
   document.getElementById('tripModalTitle').textContent = 'Add trip';
   document.getElementById('delTripBtn').style.display = 'none';
   renderTripBody();
@@ -669,7 +677,15 @@ function renderTripBody() {
       <div class="field-group"><label class="field-label">Trip name</label><input class="field-input" value="${esc(trip.name)}" oninput="window._editDraft.name=this.value" placeholder="e.g. Ben Wedding"></div>
       <div class="field-group"><label class="field-label">Date</label><input class="field-input" type="date" value="${esc(trip.startDate||'')}" onchange="window._editDraft.startDate=this.value"></div>
     </div>
-    <div class="field-group"><label class="field-label">Location</label><input class="field-input" value="${esc(trip.location||'')}" oninput="window._editDraft.location=this.value" placeholder="e.g. Austin, TX"></div>
+    <div class="trip-fields-grid">
+      <div class="field-group"><label class="field-label">Location</label><input class="field-input" value="${esc(trip.location||'')}" oninput="window._editDraft.location=this.value" placeholder="e.g. Austin, TX"></div>
+      <div class="field-group"><label class="field-label">Category</label>
+        <select class="field-input" onchange="window._editDraft.category=this.value">
+          <option value="">— Select —</option>
+          ${['Wedding','Vacation','Holiday','Work','Party','Other'].map(c=>`<option value="${c}"${trip.category===c?' selected':''}}>${c}</option>`).join('')}
+        </select>
+      </div>
+    </div>
     <p class="section-label">Requirements</p>
     <div style="overflow-x:auto">
       <table class="items-table">
