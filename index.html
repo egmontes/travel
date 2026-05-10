@@ -103,8 +103,8 @@
   .btn-danger:hover { background: var(--danger-bg); }
 
   .chevron { font-size: 11px; color: var(--text-tertiary); margin-left: 2px; transition: transform 0.2s; display: inline-block; }
-  .trip-items { border-top: 1px solid var(--trip-border, var(--border)); max-height: 40vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-  .col-header { display: grid; grid-template-columns: 1fr 150px 150px 1fr; gap: 10px; padding: 7px 16px; background: var(--bg-secondary); border-bottom: 1px solid var(--trip-border, var(--border)); }
+  .trip-items { max-height: 40vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .col-header { display: grid; grid-template-columns: 1fr 150px 150px 1fr; gap: 10px; padding: 7px 16px; background: var(--bg-secondary); border-top: 1px solid var(--trip-border, var(--border)); border-bottom: 1px solid var(--trip-border, var(--border)); }
   .col-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
   .item-row { display: grid; grid-template-columns: 1fr 150px 150px 1fr; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid var(--trip-border, var(--border)); }
   .item-name { font-size: 16px; font-weight: 700; color: var(--trip-color, var(--text)); text-transform: uppercase; letter-spacing: 0.03em; }
@@ -196,7 +196,7 @@
   .mobile-activities-label { display: none; }
   @media (max-width: 600px) {
     .col-header { display: none; }
-    .mobile-activities-label { display: block; font-size: 11px; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; background: var(--bg-secondary); border-bottom: 1px solid var(--trip-border, var(--border)); padding: 7px 16px; }
+    .mobile-activities-label { display: block; font-size: 11px; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; background: var(--bg-secondary); border-top: 1px solid var(--trip-border, var(--border)); border-bottom: 1px solid var(--trip-border, var(--border)); padding: 7px 16px; }
     .item-row { grid-template-columns: 1fr; }
     .trip-fields-grid { grid-template-columns: 1fr; }
     .tab-nav { width: 100%; }
@@ -760,7 +760,9 @@ function tripHTML(ti) {
         return da - db;
       });
 
-    h += `<div class="trip-items"><div class="col-header"><span class="col-label">Activity</span><span class="col-label">Details</span><span class="col-label">Status</span><span class="col-label">Notes</span></div><div class="mobile-activities-label">📋 Activities</div>`;
+    h += `<div class="col-header"><span class="col-label">Activity</span><span class="col-label">Details</span><span class="col-label">Status</span><span class="col-label">Notes</span></div>
+    <div class="mobile-activities-label">📋 Activities</div>
+    <div class="trip-items">`;
     sortedItems.forEach(({item, ii}) => {
       h += `<div class="item-row">
         <div><div class="item-name">${esc(item.name)}</div>${formatItemDate(item)?`<div class="item-date-lbl">${esc(formatItemDate(item))}</div>`:''}</div>
