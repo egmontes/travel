@@ -70,7 +70,7 @@
   .category-badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; background: var(--bg-secondary); color: var(--text-secondary); border: 0.5px solid var(--border); margin-left: 6px; }
   .category-banner { padding: 6px 16px; text-align: center; }
   .category-banner-text { font-size: 12px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
-  .add-req-row { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; border-top: 0.5px solid var(--border); background: var(--bg-secondary); }
+  .add-req-row { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; border-top: 0.5px solid var(--trip-border, var(--border)); background: var(--bg-secondary); }
   .add-req-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .add-req-fields.three { grid-template-columns: 1fr 1fr 1fr; }
   .add-req-actions { display: flex; gap: 8px; justify-content: flex-end; }
@@ -79,7 +79,7 @@
   .add-req-input:focus { outline: none; border-color: var(--text-secondary); }
   .add-req-btn { font-size: 12px; padding: 5px 12px; border-radius: var(--radius-md); border: 0.5px solid var(--border-secondary); background: transparent; color: var(--text-secondary); cursor: pointer; font-family: inherit; white-space: nowrap; }
   .add-req-btn:hover { background: var(--bg); color: var(--text); }
-  .add-req-trigger { display: flex; align-items: center; gap: 6px; padding: 9px 16px; border-top: 0.5px solid var(--border); color: var(--text-tertiary); font-size: 13px; cursor: pointer; transition: background 0.15s; }
+  .add-req-trigger { display: flex; align-items: center; gap: 6px; padding: 9px 16px; border-top: 0.5px solid var(--trip-border, var(--border)); color: var(--text-tertiary); font-size: 13px; cursor: pointer; transition: background 0.15s; }
   .add-req-trigger:hover { background: var(--bg-secondary); color: var(--text-secondary); }
   .progress-wrap { display: flex; align-items: center; gap: 8px; }
   .progress-bar { width: 56px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
@@ -96,10 +96,10 @@
   .btn-danger:hover { background: var(--danger-bg); }
 
   .chevron { font-size: 11px; color: var(--text-tertiary); margin-left: 2px; transition: transform 0.2s; display: inline-block; }
-  .trip-items { border-top: 0.5px solid var(--border); }
-  .col-header { display: grid; grid-template-columns: 1fr 150px 150px 1fr; gap: 10px; padding: 7px 16px; background: var(--bg-secondary); }
+  .trip-items { border-top: 0.5px solid var(--trip-border, var(--border)); }
+  .col-header { display: grid; grid-template-columns: 1fr 150px 150px 1fr; gap: 10px; padding: 7px 16px; background: var(--bg-secondary); border-bottom: 0.5px solid var(--trip-border, var(--border)); }
   .col-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
-  .item-row { display: grid; grid-template-columns: 1fr 150px 150px 1fr; align-items: center; gap: 10px; padding: 10px 16px; border-top: 0.5px solid var(--border); }
+  .item-row { display: grid; grid-template-columns: 1fr 150px 150px 1fr; align-items: center; gap: 10px; padding: 10px 16px; border-top: 0.5px solid var(--trip-border, var(--border)); }
   .item-name { font-size: 14px; color: var(--text); }
   .item-date-lbl { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
   .item-details-lbl { font-size: 13px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -114,7 +114,7 @@
   .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
   .modal-backdrop.open { display: flex; }
   .modal { background: var(--bg); border: 0.5px solid var(--border-secondary); border-radius: var(--radius-lg); width: 100%; max-width: 620px; overflow: hidden; margin: auto; }
-  .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 0.5px solid var(--border); }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 0.5px solid var(--trip-border, var(--border)); }
   .modal-title { font-size: 16px; font-weight: 500; }
   .modal-close { background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 20px; line-height: 1; padding: 2px 6px; border-radius: 4px; font-family: inherit; }
   .modal-close:hover { background: var(--bg-secondary); }
@@ -128,9 +128,9 @@
   .section-label:first-child { margin-top: 0; }
   .items-table { border-collapse: collapse; font-size: 13px; min-width: 700px; }
   .items-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .items-table th { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 8px; text-align: left; border-bottom: 0.5px solid var(--border); font-weight: 500; white-space: nowrap; }
+  .items-table th { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 8px; text-align: left; border-bottom: 0.5px solid var(--trip-border, var(--border)); font-weight: 500; white-space: nowrap; }
   .items-table td { padding: 8px 6px; vertical-align: middle; white-space: nowrap; }
-  .items-table tbody tr:not(:last-child) td { border-bottom: 0.5px solid var(--border); }
+  .items-table tbody tr:not(:last-child) td { border-bottom: 0.5px solid var(--trip-border, var(--border)); }
   .table-input { font-size: 13px; border: 0.5px solid var(--border-secondary); border-radius: var(--radius-md); padding: 5px 7px; background: var(--bg); color: var(--text); width: 100%; font-family: inherit; box-sizing: border-box; }
   .table-input:focus { outline: none; border-color: var(--text-secondary); }
   .table-select { font-size: 13px; border: 0.5px solid var(--border-secondary); border-radius: var(--radius-md); padding: 5px 6px; background: var(--bg); color: var(--text); width: 100%; font-family: inherit; box-sizing: border-box; }
@@ -138,7 +138,7 @@
   .del-btn:hover { color: var(--danger-text); background: var(--danger-bg); }
   .add-row-btn { font-size: 13px; padding: 7px 12px; color: var(--text-secondary); background: transparent; border: 0.5px dashed var(--border-secondary); border-radius: var(--radius-md); cursor: pointer; width: 100%; margin-top: 10px; text-align: center; font-family: inherit; transition: background 0.15s; }
   .add-row-btn:hover { background: var(--bg-secondary); }
-  .modal-footer { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-top: 0.5px solid var(--border); gap: 8px; }
+  .modal-footer { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-top: 0.5px solid var(--trip-border, var(--border)); gap: 8px; }
   .modal-footer-right { display: flex; gap: 8px; }
 
   .add-trip-area { margin-top: 1.25rem; }
@@ -618,17 +618,12 @@ function statusColorClass(status) {
 }
 
 function formatItemDate(item) {
-  // New format: dateStart / dateEnd
-  if (item.dateStart) {
-    const start = formatDateDisplay(item.dateStart);
-    if (item.dateEnd && item.dateEnd !== item.dateStart) {
-      const end = formatDateDisplay(item.dateEnd);
-      return `${start} – ${end}`;
-    }
-    return start;
+  if (!item.dateStart) return '';
+  const start = formatDateDisplay(item.dateStart);
+  if (item.dateEnd && item.dateEnd !== item.dateStart) {
+    return `${start} – ${formatDateDisplay(item.dateEnd)}`;
   }
-  // Legacy: plain date string like "Jan 7" or "Jan 7–9"
-  return item.date || '';
+  return start;
 }
 function isPast(t) { const d = parseDateStr(t.startDate || t.date); return d && d < TODAY; }
 function progressFor(ti) {
@@ -685,8 +680,8 @@ function tripHTML(ti) {
   const st = tripStatus(ti);
   const displayDate = trip.startDate ? formatDateDisplay(trip.startDate) : (trip.date||'');
   const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
-  let h = `<div class="trip-card${past?' past-trip':''}" id="tc-${ti}" style="${theme ? `border: 1.5px solid ${theme.border}` : ''}">
-    ${theme ? `<div class="category-banner" style="background:${theme.bg};border-bottom:0.5px solid ${theme.border}">
+  let h = `<div class="trip-card${past?' past-trip':''}" id="tc-${ti}" style="${theme ? `border: 1.5px solid ${theme.border}; --trip-border: ${theme.border}` : ''}">
+    ${theme ? `<div class="category-banner" style="background:${theme.bg};border-bottom: 0.5px solid ${theme.border}">
       <span class="category-banner-text" style="color:${theme.text}">${theme.emoji} ${esc(trip.category)}</span>
     </div>` : ''}
     <div class="trip-header" onclick="handleHeaderClick(event,${ti})">
@@ -913,7 +908,16 @@ function openEdit(e,ti) {
   document.getElementById('tripModalTitle').textContent = 'Edit trip';
   document.getElementById('delTripBtn').style.display = '';
   renderTripBody();
-  document.getElementById('tripModal').classList.add('open');
+  const modal = document.getElementById('tripModal');
+  const theme = trips[ti]?.category ? CATEGORY_THEME[trips[ti].category] : null;
+  if (theme) {
+    modal.style.setProperty('--trip-border', theme.border);
+    modal.querySelector('.modal').style.borderColor = theme.border;
+  } else {
+    modal.style.removeProperty('--trip-border');
+    modal.querySelector('.modal').style.borderColor = '';
+  }
+  modal.classList.add('open');
 }
 
 function openAddTrip() {
@@ -922,7 +926,16 @@ function openAddTrip() {
   document.getElementById('tripModalTitle').textContent = 'Add trip';
   document.getElementById('delTripBtn').style.display = 'none';
   renderTripBody();
-  document.getElementById('tripModal').classList.add('open');
+  const modal = document.getElementById('tripModal');
+  const theme = trips[ti]?.category ? CATEGORY_THEME[trips[ti].category] : null;
+  if (theme) {
+    modal.style.setProperty('--trip-border', theme.border);
+    modal.querySelector('.modal').style.borderColor = theme.border;
+  } else {
+    modal.style.removeProperty('--trip-border');
+    modal.querySelector('.modal').style.borderColor = '';
+  }
+  modal.classList.add('open');
 }
 
 function renderTripBody() {
