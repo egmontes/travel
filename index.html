@@ -58,7 +58,8 @@
   .stat-value.amber { color: var(--amber-text); }
 
   .trip-list { display: flex; flex-direction: column; gap: 10px; }
-  .trip-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  .trip-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; transition: opacity 0.25s, filter 0.25s; }
+  .trip-card.faded { opacity: 0.35; filter: grayscale(0.4); }
   .trip-header { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 12px 16px; cursor: pointer; user-select: none; transition: background 0.15s; }
   .trip-header:hover { background: var(--bg-secondary); }
   .month-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
@@ -813,6 +814,7 @@ function setTab(tab) {
   activeTab = tab;
   TABS.forEach(t => document.getElementById('tab-'+t).classList.toggle('active', t === tab));
   positionTrack();
+  setTimeout(updateFade, 50);
 }
 
 function renderPanel(tab) {
@@ -834,11 +836,11 @@ function renderAll() {
 function handleHeaderClick(e,ti) {
   if (e.target.closest('.btn')) return;
   expanded[ti] = !expanded[ti];
-  // Re-render this card in all panels that contain it
   TABS.forEach(tab => {
     const el = document.querySelector('#tripList-' + tab + ' #tc-' + ti);
     if (el) el.outerHTML = tripHTML(ti);
   });
+  updateFade();
 }
 
 function onDetailChange(ti, ii, val) {
@@ -1226,7 +1228,7 @@ function showToast(msg) {
 }
 
 // expose to inline handlers
-Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, detailsOptsFor, detailsCell, modalDetailsCell, openEdit, openAddTrip, statusColorClass,
+Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, updateFade, detailsOptsFor, detailsCell, modalDetailsCell, openEdit, openAddTrip, statusColorClass,
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
   closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab,
   toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey,
@@ -1234,8 +1236,20 @@ Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, detai
 
 
 
-function expandAll() { trips.forEach((_,i)=>expanded[i]=true); renderAll(); }
-function collapseAll() { expanded={}; renderAll(); }
+function updateFade() {
+  const anyOpen = Object.values(expanded).some(v => v);
+  document.querySelectorAll('.trip-card').forEach(card => {
+    const ti = parseInt((card.id || '').replace('tc-', ''));
+    if (anyOpen && !expanded[ti]) {
+      card.classList.add('faded');
+    } else {
+      card.classList.remove('faded');
+    }
+  });
+}
+
+function expandAll() { trips.forEach((_,i)=>expanded[i]=true); renderAll(); updateFade(); }
+function collapseAll() { expanded={}; renderAll(); updateFade(); }
 
 // ── Swipe gesture support ──
 (function() {
