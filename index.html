@@ -181,6 +181,12 @@
     .status-pill.notstarted{ background: #450a0a; color: #fca5a5; }
   }
 
+  /* Custom details dropdown */
+  .details-wrap { position: relative; display: block; }
+  .details-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg); border: 1px solid var(--border-secondary); border-radius: var(--radius-md); z-index: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.12); overflow: hidden; margin-top: 2px; }
+  .details-opt { padding: 7px 10px; font-size: 13px; cursor: pointer; color: var(--text); }
+  .details-opt:hover { background: var(--bg-secondary); }
+
   .slider-viewport { overflow: hidden; width: 100%; }
   .slider-track { display: flex; width: 300%; transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform; }
   .slider-track.dragging { transition: none; }
@@ -216,7 +222,6 @@
   </div>
 
   <div id="setupBanner"></div>
-  <div class="stats" id="stats"></div>
 
   <div class="tab-nav-wrap">
     <nav class="tab-nav" id="tabNav">
@@ -230,14 +235,17 @@
   <div class="slider-viewport" id="sliderViewport">
     <div class="slider-track" id="sliderTrack">
       <div class="slider-panel" id="panel-upcoming">
+        <div class="stats" id="stats-upcoming"></div>
         <div class="trip-list" id="tripList-upcoming"></div>
         <div class="add-trip-area"><button class="add-trip-btn" onclick="openAddTrip()">+ Add trip</button></div>
       </div>
       <div class="slider-panel" id="panel-all">
+        <div class="stats" id="stats-all"></div>
         <div class="trip-list" id="tripList-all"></div>
         <div class="add-trip-area"><button class="add-trip-btn" onclick="openAddTrip()">+ Add trip</button></div>
       </div>
       <div class="slider-panel" id="panel-past">
+        <div class="stats" id="stats-past"></div>
         <div class="trip-list" id="tripList-past"></div>
       </div>
     </div>
@@ -542,10 +550,10 @@ function formatDateDisplay(s) {
   return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
 }
 const DETAILS_OPTIONS = {
-  'Inbound':  ['✈️ Plane','🚂 Train','🚗 Car','⛵ Boat','🔘 Other'],
-  'Outbound': ['✈️ Plane','🚂 Train','🚗 Car','⛵ Boat','🔘 Other'],
-  'Stay':     ['🏨 Hotel','🏡 Rental','🏠 Home','🔘 Other'],
-  'Gift':     ['🎀 Registry','🎂 Birthday','🔘 Other'],
+  'Inbound':  ['✈️ Plane','🚂 Train','🚗 Car','⛵ Boat'],
+  'Outbound': ['✈️ Plane','🚂 Train','🚗 Car','⛵ Boat'],
+  'Stay':     ['🏨 Hotel','🏡 Rental','🏠 Home'],
+  'Gift':     ['🎀 Registry','🎂 Birthday'],
 };
 
 function detailsOptsFor(name) {
@@ -582,14 +590,18 @@ function modalItemNameCell(it, ii) {
 function modalDetailsCell(it, ii) {
   const opts = detailsOptsFor(it.name);
   const cur = it.details || '';
-  if (opts) {
-    const optsHtml = opts.map(o => `<option value="${o}"${o===cur?' selected':''}>${o}</option>`).join('');
-    return `<select class="table-select" style="width:100%" onchange="window._editDraft.items[${ii}].details=this.value">
-      <option value="">— select —</option>
-      ${optsHtml}
-    </select>`;
+  if (!opts) {
+    return `<input class="table-input" value="${cur.replace(/"/g,'&quot;')}" placeholder="details…" oninput="window._editDraft.items[${ii}].details=this.value">`;
   }
-  return `<input class="table-input" value="${cur.replace(/"/g,'&quot;')}" placeholder="details…" oninput="window._editDraft.items[${ii}].details=this.value">`;
+  const optsJson = JSON.stringify(opts).replace(/"/g,'&quot;');
+  return `<div class="details-wrap" id="mdw-${ii}">
+    <input class="table-input" value="${cur.replace(/"/g,'&quot;')}" placeholder="select or type…"
+      data-opts="${optsJson}" data-wrapid="mdw-${ii}"
+      oninput="modalDetailsInputChange(this,${ii})"
+      onfocus="modalDetailsInputChange(this,${ii})"
+      onblur="setTimeout(()=>closeDetailsDropdown('mdw-${ii}'),150)"
+      onchange="window._editDraft.items[${ii}].details=this.value">
+  </div>`;
 }
 
 function detailsCell(item, ti, ii) {
@@ -604,19 +616,20 @@ function detailsCell(item, ti, ii) {
       <button onclick="event.stopPropagation();trips[${ti}].items[${ii}]._editingDetails=true;renderAll()" style="background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:12px;padding:0" title="Edit">✏️</button>
     </div>`;
   }
-  // If preset options exist, use a native <select> — works properly on mobile
-  if (opts) {
-    const optsHtml = opts.map(o => `<option value="${o}"${o===cur?' selected':''}>${o}</option>`).join('');
-    return `<select class="status-select" style="font-size:12px;width:100%" onchange="onDetailChange(${ti},${ii},this.value)">
-      <option value="">— select —</option>
-      ${optsHtml}
-    </select>`;
+  if (!opts) {
+    return `<input class="table-input" style="font-size:12px;width:100%" value="${cur.replace(/"/g,'&quot;')}"
+      placeholder="details…" onchange="onDetailChange(${ti},${ii},this.value)" oninput="onDetailChange(${ti},${ii},this.value)">`;
   }
-  // No presets — free text input
-  return `<input class="table-input" style="font-size:12px;width:100%" value="${cur.replace(/"/g,'&quot;')}"
-    placeholder="details…"
-    onchange="onDetailChange(${ti},${ii},this.value)"
-    oninput="onDetailChange(${ti},${ii},this.value)">`;
+  const optsJson = JSON.stringify(opts).replace(/"/g,'&quot;');
+  return `<div class="details-wrap" id="dw-${ti}-${ii}">
+    <input class="table-input" style="font-size:12px;width:100%" value="${cur.replace(/"/g,'&quot;')}"
+      placeholder="select or type…"
+      data-opts="${optsJson}" data-ti="${ti}" data-ii="${ii}"
+      oninput="detailsInput(this)"
+      onchange="onDetailChange(${ti},${ii},this.value)"
+      onfocus="detailsInput(this)"
+      onblur="setTimeout(()=>closeDetailsDropdown('dw-${ti}-${ii}'),150)">
+  </div>`;
 }
 
 function statusColorClass(status) {
@@ -642,14 +655,23 @@ function esc(s) {
 }
 
 // ── Stats ──
-function updateStats() {
+function statsHTML(tab) {
+  const indices = indicesFor(tab);
+  const filteredTrips = indices.map(i => trips[i]);
   let total=0, done=0, pend=0;
-  trips.forEach(t => t.items.forEach(it => { total++; (it.status==='Booked'||it.status==='Confirmed')?done++:pend++; }));
-  document.getElementById('stats').innerHTML = `
-    <div class="stat"><div class="stat-label">Trips</div><div class="stat-value">${trips.length}</div></div>
-    <div class="stat"><div class="stat-label">Items</div><div class="stat-value">${total}</div></div>
+  filteredTrips.forEach(t => t.items.forEach(it => { total++; (it.status==='Booked'||it.status==='Confirmed')?done++:pend++; }));
+  return `
+    <div class="stat"><div class="stat-label">Trips</div><div class="stat-value">${filteredTrips.length}</div></div>
+    <div class="stat"><div class="stat-label">Activities</div><div class="stat-value">${total}</div></div>
     <div class="stat"><div class="stat-label">Completed</div><div class="stat-value green">${done}</div></div>
     <div class="stat"><div class="stat-label">Still needed</div><div class="stat-value amber">${pend}</div></div>`;
+}
+
+function updateStats() {
+  ['upcoming','all','past'].forEach(tab => {
+    const el = document.getElementById('stats-' + tab);
+    if (el) el.innerHTML = statsHTML(tab);
+  });
 }
 
 // ── Render ──
@@ -724,7 +746,7 @@ function tripHTML(ti) {
         return da - db;
       });
 
-    h += `<div class="trip-items"><div class="col-header"><span class="col-label">Item</span><span class="col-label">Details</span><span class="col-label">Status</span><span class="col-label">Notes</span></div>`;
+    h += `<div class="trip-items"><div class="col-header"><span class="col-label">Activity</span><span class="col-label">Details</span><span class="col-label">Status</span><span class="col-label">Notes</span></div>`;
     sortedItems.forEach(({item, ii}) => {
       h += `<div class="item-row">
         <div><div class="item-name">${esc(item.name)}</div>${formatItemDate(item)?`<div class="item-date-lbl">${esc(formatItemDate(item))}</div>`:''}</div>
@@ -742,7 +764,7 @@ function tripHTML(ti) {
       <div class="add-req-fields three">
         <div style="display:flex;flex-direction:column;gap:4px">
           <select class="add-req-input" id="add-req-input-${ti}" onchange="handleAddItemType(${ti},this.value)">
-            <option value="">— select item —</option>
+            <option value="">— select activity —</option>
             <option value="➡️ Inbound">➡️ Inbound</option>
             <option value="⬅️ Outbound">⬅️ Outbound</option>
             <option value="🏨 Stay">🏨 Stay</option>
@@ -754,9 +776,12 @@ function tripHTML(ti) {
           </select>
           <input class="add-req-input" id="add-req-custom-${ti}" placeholder="Custom item name" style="display:none" oninput="refreshAddItemDetails(${ti},this.value)">
         </div>
-        <select class="add-req-input" id="add-req-details-${ti}">
-          <option value="">— Details —</option>
-        </select>
+        <div class="details-wrap" id="add-dw-${ti}">
+          <input class="add-req-input" id="add-req-details-${ti}" placeholder="details…"
+            data-opts="[]" onfocus="addDetailsInput(${ti},this)"
+            oninput="addDetailsInput(${ti},this)"
+            onblur="setTimeout(()=>closeDetailsDropdown('add-dw-${ti}'),150)">
+        </div>
         <div style="display:flex;align-items:center;gap:6px">
           <input class="add-req-input" type="date" id="add-req-date-${ti}" title="Start date" style="flex:1">
           <span style="font-size:11px;color:var(--text-tertiary)">–</span>
@@ -771,7 +796,7 @@ function tripHTML(ti) {
       </div>
       <div class="add-req-actions">
         <button class="add-req-btn" onclick="cancelAddReq(${ti})">Cancel</button>
-        <button class="add-req-btn" style="color:var(--text);border-color:var(--border-secondary);font-weight:500" onclick="commitAddReq(${ti})">Add item</button>
+        <button class="add-req-btn" style="color:var(--text);border-color:var(--border-secondary);font-weight:500" onclick="commitAddReq(${ti})">Add activity</button>
       </div>
     </div>`;
     h += '</div>';
@@ -812,9 +837,11 @@ function positionTrack() {
 
 function setTab(tab) {
   activeTab = tab;
+  expanded = {};
   TABS.forEach(t => document.getElementById('tab-'+t).classList.toggle('active', t === tab));
+  renderAll();
   positionTrack();
-  setTimeout(updateFade, 50);
+  updateFade();
 }
 
 function renderPanel(tab) {
@@ -841,6 +868,70 @@ function handleHeaderClick(e,ti) {
     if (el) el.outerHTML = tripHTML(ti);
   });
   updateFade();
+}
+
+function detailsInput(inp) {
+  const opts = JSON.parse(inp.dataset.opts || '[]');
+  const val = inp.value;
+  const wrapId = inp.closest('.details-wrap')?.id;
+  if (!wrapId) return;
+
+  // If value exactly matches an option, show all options
+  const exactMatch = opts.includes(val);
+  const filtered = exactMatch ? opts : opts.filter(o => o.toLowerCase().includes(val.toLowerCase()));
+
+  closeDetailsDropdown(wrapId);
+  if (!filtered.length) return;
+
+  const ti = inp.dataset.ti, ii = inp.dataset.ii;
+  const wrap = document.getElementById(wrapId);
+  const drop = document.createElement('div');
+  drop.className = 'details-dropdown';
+  drop.id = wrapId + '-dd';
+  filtered.forEach(o => {
+    const div = document.createElement('div');
+    div.className = 'details-opt';
+    div.textContent = o;
+    div.onmousedown = () => {
+      inp.value = o;
+      onDetailChange(parseInt(ti), parseInt(ii), o);
+      closeDetailsDropdown(wrapId);
+    };
+    drop.appendChild(div);
+  });
+  wrap.appendChild(drop);
+}
+
+function modalDetailsInputChange(inp, ii) {
+  const opts = JSON.parse(inp.dataset.opts || '[]');
+  const val = inp.value;
+  window._editDraft.items[ii].details = val;
+  const wrapId = 'mdw-' + ii;
+  const exactMatch = opts.includes(val);
+  const filtered = exactMatch ? opts : opts.filter(o => o.toLowerCase().includes(val.toLowerCase()));
+  closeDetailsDropdown(wrapId);
+  if (!filtered.length) return;
+  const wrap = document.getElementById(wrapId);
+  const drop = document.createElement('div');
+  drop.className = 'details-dropdown';
+  drop.id = wrapId + '-dd';
+  filtered.forEach(o => {
+    const div = document.createElement('div');
+    div.className = 'details-opt';
+    div.textContent = o;
+    div.onmousedown = () => {
+      inp.value = o;
+      window._editDraft.items[ii].details = o;
+      closeDetailsDropdown(wrapId);
+    };
+    drop.appendChild(div);
+  });
+  wrap.appendChild(drop);
+}
+
+function closeDetailsDropdown(wrapId) {
+  const dd = document.getElementById(wrapId + '-dd');
+  if (dd) dd.remove();
 }
 
 function onDetailChange(ti, ii, val) {
@@ -980,14 +1071,14 @@ function renderTripBody() {
         </select>
       </div>
     </div>
-    <p class="section-label">Items</p>
+    <p class="section-label">Activities</p>
     <div class="items-table-wrap">
       <table class="items-table">
-        <thead><tr><th style="min-width:160px">Item</th><th style="min-width:170px">Details</th><th style="min-width:280px">Date</th><th style="min-width:150px">Status</th><th style="min-width:180px">Notes</th><th style="width:32px"></th></tr></thead>
+        <thead><tr><th style="min-width:160px">Activity</th><th style="min-width:170px">Details</th><th style="min-width:280px">Date</th><th style="min-width:150px">Status</th><th style="min-width:180px">Notes</th><th style="width:32px"></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
-    <button class="add-row-btn" onclick="addItem()">+ Add item</button>`;
+    <button class="add-row-btn" onclick="addItem()">+ Add activity</button>`;
 }
 
 function addItem() { window._editDraft.items.push({name:'',date:'',dateStart:'',dateEnd:'',status:'Not Booked',details:''}); renderTripBody(); }
@@ -1094,18 +1185,35 @@ function handleAddItemType(ti, val) {
 }
 
 function refreshAddItemDetails(ti, name) {
-  const sel = document.getElementById('add-req-details-' + ti);
-  if (!sel) return;
-  const opts = detailsOptsFor(name);
-  if (!opts) {
-    sel.innerHTML = '<option value="">—</option>';
-    sel.disabled = true;
-    return;
-  }
-  sel.disabled = false;
-  sel.value = '';
-  sel.innerHTML = '<option value="">— select —</option>' +
-    opts.map(o => `<option value="${o}">${o}</option>`).join('');
+  const inp = document.getElementById('add-req-details-' + ti);
+  if (!inp) return;
+  const opts = detailsOptsFor(name) || [];
+  inp.dataset.opts = JSON.stringify(opts);
+  inp.placeholder = opts.length ? 'select or type…' : 'details…';
+  inp.value = '';
+  closeDetailsDropdown('add-dw-' + ti);
+}
+
+function addDetailsInput(ti, inp) {
+  const opts = JSON.parse(inp.dataset.opts || '[]');
+  const val = inp.value;
+  const wrapId = 'add-dw-' + ti;
+  const exactMatch = opts.includes(val);
+  const filtered = exactMatch ? opts : opts.filter(o => o.toLowerCase().includes(val.toLowerCase()));
+  closeDetailsDropdown(wrapId);
+  if (!filtered.length) return;
+  const wrap = document.getElementById(wrapId);
+  const drop = document.createElement('div');
+  drop.className = 'details-dropdown';
+  drop.id = wrapId + '-dd';
+  filtered.forEach(o => {
+    const div = document.createElement('div');
+    div.className = 'details-opt';
+    div.textContent = o;
+    div.onmousedown = () => { inp.value = o; closeDetailsDropdown(wrapId); };
+    drop.appendChild(div);
+  });
+  wrap.appendChild(drop);
 }
 
 function toggleAddReq(e, ti) {
@@ -1146,7 +1254,7 @@ async function commitAddReq(ti) {
   const customInp = document.getElementById('add-req-custom-' + ti);
   if (!sel) return;
   const name = (sel.value === 'custom' ? (customInp?.value || '') : sel.value).trim();
-  if (!name) { (sel.value === 'custom' ? customInp : sel)?.focus(); showToast('Please enter an item name'); return; }
+  if (!name) { (sel.value === 'custom' ? customInp : sel)?.focus(); showToast('Please enter an activity name'); return; }
   const dateStart = (document.getElementById('add-req-date-' + ti) || {}).value || '';
   const dateEnd   = (document.getElementById('add-req-date-end-' + ti) || {}).value || '';
   const status    = (document.getElementById('add-req-status-' + ti) || {}).value || 'Not Booked';
@@ -1156,7 +1264,7 @@ async function commitAddReq(ti) {
   expanded[ti] = true;
   updateStats(); updateTabCounts(); renderAll();
   await persist();
-  showToast('Item added');
+  showToast('Activity added');
 }
 
 function handleAddReqKey(e, ti) {
@@ -1238,7 +1346,7 @@ Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, updat
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
   closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab,
   toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey,
-  refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell, notesCell, switchNotesToEdit, extractUrl });
+  refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell, notesCell, switchNotesToEdit, extractUrl, detailsInput, modalDetailsInputChange, addDetailsInput, closeDetailsDropdown });
 
 
 
