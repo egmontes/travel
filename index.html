@@ -140,7 +140,6 @@
     <div class="header-actions">
       <button class="btn" onclick="expandAll()">Expand all</button>
       <button class="btn" onclick="collapseAll()">Collapse all</button>
-      <button class="btn" onclick="openSettings()">&#9881; Settings</button>
       <button class="btn" onclick="exportCSV()">Export ↗</button>
     </div>
   </div>
@@ -572,16 +571,17 @@ trips.forEach((trip,i) => {
 });
 renderAll();
 
-const saved = getCfg();
-if (saved?.apiKey) {
-  connect(saved);
-} else {
-  document.getElementById('setupBanner').innerHTML = `
-    <div class="setup-banner">
-      <h2>Connect Firebase to sync across devices</h2>
-      <p>Click <strong>Settings</strong> in the top right and paste your Firebase config. Your data saves locally until then.</p>
-    </div>`;
-}
+const HARDCODED_CFG = {
+  apiKey: "AIzaSyC0hkoFdLexSXgU7GjJb_w9v4m39Jzxa34",
+  authDomain: "travel-tracking-a5674.firebaseapp.com",
+  projectId: "travel-tracking-a5674",
+  storageBucket: "travel-tracking-a5674.firebasestorage.app",
+  messagingSenderId: "839336438573",
+  appId: "1:839336438573:web:5f107e73d670b64deec1a4",
+  measurementId: "G-WJKV8M5TG6"
+};
+
+connect(HARDCODED_CFG);
 </script>
 </body>
 </html>
