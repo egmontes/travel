@@ -63,6 +63,7 @@
   .past-trip .trip-name { color: var(--text-secondary); }
   .past-badge { font-size: 11px; background: var(--bg-secondary); color: var(--text-tertiary); border-radius: 4px; padding: 2px 6px; }
   .trip-date-label { font-size: 13px; color: var(--text-secondary); }
+  .trip-location-label { font-size: 12px; color: var(--text-tertiary); margin-top: 1px; }
   .progress-wrap { display: flex; align-items: center; gap: 8px; }
   .progress-bar { width: 56px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
   .progress-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
@@ -262,88 +263,88 @@ const CFG_KEY = 'travelFbCfg';
 const DOC_PATH  = ['travel','trips2026'];
 
 const DEFAULT_TRIPS = [
-  {name:'Fiesta Bowl',date:'Jan 8',month:0,items:[
+  {name:'Fiesta Bowl',date:'Jan 8',startDate:'2026-01-08',location:'Glendale, AZ',month:0,items:[
     {name:'Inbound Flight',date:'Jan 7',status:'Booked',details:'JetBlue'},
     {name:'Hotel',date:'Jan 7–9',status:'Booked',details:'3 nights'},
     {name:'Tickets',date:'Jan 8',status:'Booked',details:''},
     {name:'Outbound Flight',date:'Jan 9',status:'Booked',details:'American'}]},
-  {name:'Waste Mgmt + Super Bowl',date:'Feb 7',month:1,items:[
+  {name:'Waste Mgmt + Super Bowl',date:'Feb 7',startDate:'2026-02-07',location:'Phoenix, AZ',month:1,items:[
     {name:'Inbound Flight',date:'Feb 5',status:'Booked',details:'American 4:52pm'},
     {name:"Riley's House",date:'Feb 5–8',status:'Confirmed',details:'3 nights'},
     {name:'Outbound Flight',date:'Feb 8',status:'Booked',details:'American 10:45pm'}]},
-  {name:'Austin Half Marathon',date:'Feb 15',month:1,items:[
+  {name:'Austin Half Marathon',date:'Feb 15',startDate:'2026-02-15',location:'Austin, TX',month:1,items:[
     {name:'Inbound Flight',date:'Feb 12',status:'Booked',details:'Southwest 7:10pm'},
     {name:"Cristina's House",date:'Feb 12–15',status:'Confirmed',details:''},
     {name:'Half Marathon Signup',date:'Feb 15',status:'Booked',details:''},
     {name:'Outbound Flight',date:'Feb 16',status:'Booked',details:'JetBlue 7:10pm'}]},
-  {name:'Snowbird Ski Trip',date:'Feb 28',month:1,items:[
+  {name:'Snowbird Ski Trip',date:'Feb 28',startDate:'2026-02-28',location:'Salt Lake City, UT',month:1,items:[
     {name:'Inbound Flight',date:'Feb 26',status:'Booked',details:''},
     {name:'Lift Tickets',date:'Feb 27–Mar 1',status:'Booked',details:''},
     {name:'Rental Gear',date:'Feb 27–Mar 1',status:'Booked',details:''},
     {name:'Airbnb',date:'Feb 26–Mar 1',status:'Confirmed',details:''},
     {name:'Outbound Flight',date:'Mar 1',status:'Booked',details:''}]},
-  {name:'Robert Wedding – Miami',date:'Mar 21',month:2,items:[
+  {name:'Robert Wedding – Miami',date:'Mar 21',startDate:'2026-03-21',location:'Miami, FL',month:2,items:[
     {name:'Inbound Flight',date:'Mar 19',status:'Booked',details:'American 6:25pm'},
     {name:'Stay at Home',date:'Mar 19–24',status:'Confirmed',details:''},
     {name:'Gift',date:'Mar 21',status:'Confirmed',details:'$300 World Cup Fund'},
     {name:'Outbound Flight',date:'Mar 24',status:'Booked',details:'American 7:50pm'}]},
-  {name:'Alec Wedding – Miami',date:'Apr 18',month:3,items:[
+  {name:'Alec Wedding – Miami',date:'Apr 18',startDate:'2026-04-18',location:'Miami, FL',month:3,items:[
     {name:'Inbound Flight',date:'Apr 15',status:'Booked',details:'American 6pm'},
     {name:'Stay at Home',date:'Apr 15–19',status:'Confirmed',details:''},
     {name:'Gift',date:'Apr 18',status:'Not Confirmed',details:'zola.com/wedding/lloretallmonwedding'},
     {name:'Outbound Flight',date:'Apr 19',status:'Booked',details:'Delta 7:59pm'}]},
-  {name:'Daniel Engagement Party – Miami',date:'May 9',month:4,items:[
+  {name:'Daniel Engagement Party – Miami',date:'May 9',startDate:'2026-05-09',location:'Miami, FL',month:4,items:[
     {name:'Inbound Flight',date:'May 6',status:'Booked',details:'Delta 8:05pm'},
     {name:'Stay at Home',date:'May 7–11',status:'Confirmed',details:''},
     {name:'Outbound Flight',date:'May 11',status:'Booked',details:'American 7:40pm'}]},
-  {name:'Christian Wedding – Boston',date:'May 30',month:4,items:[
+  {name:'Christian Wedding – Boston',date:'May 30',startDate:'2026-05-30',location:'Boston, MA',month:4,items:[
     {name:'Drive Out',date:'May 30',status:'Not Booked',details:''},
     {name:'Airbnb',date:'',status:'Not Booked',details:''},
     {name:'Gift',date:'May 30',status:'Not Confirmed',details:'oliviaandchristian.minted.us'},
     {name:'Drive Home',date:'',status:'Not Booked',details:''}]},
-  {name:'Ben Wedding – Iowa',date:'Jun 13',month:5,items:[
+  {name:'Ben Wedding – Iowa',date:'Jun 13',startDate:'2026-06-13',location:'Iowa',month:5,items:[
     {name:'Inbound Flight',date:'',status:'Not Booked',details:''},
     {name:'Airbnb',date:'Jun 11–14',status:'Booked',details:'Mitch Booked'},
     {name:'Gift',date:'Jun 13',status:'Not Confirmed',details:'zola.com/wedding/benandkennedy2026'},
     {name:'Outbound Flight',date:'',status:'Not Booked',details:''}]},
-  {name:'Kennet Wedding – Brazil (TBD)',date:'Jun 20',month:5,items:[
+  {name:'Kennet Wedding – Brazil (TBD)',date:'Jun 20',startDate:'2026-06-20',location:'Brazil',month:5,items:[
     {name:'Gift',date:'Jun 20',status:'Not Booked',details:'zola.com/wedding/carolinaandkennet'}]},
-  {name:'Dave Wedding – Maine',date:'Jul 11',month:6,items:[
+  {name:'Dave Wedding – Maine',date:'Jul 11',startDate:'2026-07-11',location:'Maine',month:6,items:[
     {name:'Inbound Drive',date:'',status:'Not Booked',details:''},
     {name:'Airbnb',date:'',status:'Not Booked',details:''},
     {name:'Gift',date:'Jul 11',status:'Not Confirmed',details:'zola.com/wedding/the-bambricks'},
     {name:'Outbound Drive',date:'',status:'Not Booked',details:''}]},
-  {name:'Kyle Wedding – Boston',date:'Aug 15',month:7,items:[
+  {name:'Kyle Wedding – Boston',date:'Aug 15',startDate:'2026-08-15',location:'Boston, MA',month:7,items:[
     {name:'Gift',date:'Aug 15',status:'Not Confirmed',details:''}]},
-  {name:'Logan Wedding – Virginia',date:'Aug 29',month:7,items:[
+  {name:'Logan Wedding – Virginia',date:'Aug 29',startDate:'2026-08-29',location:'Virginia',month:7,items:[
     {name:'Inbound Flight',date:'',status:'Not Booked',details:''},
     {name:'Airbnb',date:'',status:'Not Booked',details:''},
     {name:'Gift',date:'Aug 29',status:'Not Confirmed',details:''},
     {name:'Outbound Flight',date:'',status:'Not Booked',details:''}]},
-  {name:'Fantasy Draft',date:'Sep 5',month:8,items:[
+  {name:'Fantasy Draft',date:'Sep 5',startDate:'2026-09-05',location:'',month:8,items:[
     {name:'Inbound Flight',date:'',status:'Not Booked',details:''},
     {name:'Airbnb',date:'',status:'Not Booked',details:''},
     {name:'Outbound Flight',date:'',status:'Not Confirmed',details:''}]},
-  {name:'Ryan Wedding – Maine',date:'Sep 12',month:8,items:[
+  {name:'Ryan Wedding – Maine',date:'Sep 12',startDate:'2026-09-12',location:'Maine',month:8,items:[
     {name:'Inbound Drive',date:'',status:'Not Booked',details:''},
     {name:'Airbnb',date:'',status:'Not Booked',details:''},
     {name:'Gift',date:'Sep 12',status:'Not Confirmed',details:''},
     {name:'Outbound Drive',date:'',status:'Not Booked',details:''}]},
-  {name:'Olivia Wedding – Chicago',date:'Oct 17',month:9,items:[
+  {name:'Olivia Wedding – Chicago',date:'Oct 17',startDate:'2026-10-17',location:'Chicago, IL',month:9,items:[
     {name:'Inbound Flight',date:'',status:'Not Booked',details:''},
     {name:'Airbnb',date:'',status:'Not Booked',details:''},
     {name:'Gift',date:'Oct 17',status:'Not Confirmed',details:''},
     {name:'Outbound Flight',date:'',status:'Not Booked',details:''}]},
-  {name:'Jeanette Wedding – Ocala',date:'Nov 21',month:10,items:[
+  {name:'Jeanette Wedding – Ocala',date:'Nov 21',startDate:'2026-11-21',location:'Ocala, FL',month:10,items:[
     {name:'Inbound Flight',date:'',status:'Not Booked',details:''},
     {name:'Airbnb',date:'',status:'Not Booked',details:''},
     {name:'Gift',date:'Nov 21',status:'Not Confirmed',details:''},
     {name:'Outbound Flight',date:'',status:'Not Booked',details:''}]},
-  {name:'Thanksgiving',date:'Nov 26',month:10,items:[
+  {name:'Thanksgiving',date:'Nov 26',startDate:'2026-11-26',location:'',month:10,items:[
     {name:'Inbound Flight',date:'',status:'Not Booked',details:''},
     {name:'Airbnb',date:'',status:'Not Booked',details:''},
     {name:'Outbound Flight',date:'',status:'Not Confirmed',details:''}]},
-  {name:'Christmas',date:'Dec 25',month:11,items:[
+  {name:'Christmas',date:'Dec 25',startDate:'2026-12-25',location:'',month:11,items:[
     {name:'Inbound Flight',date:'',status:'Not Booked',details:''},
     {name:'Airbnb',date:'',status:'Not Booked',details:''},
     {name:'Outbound Flight',date:'',status:'Not Confirmed',details:''}]}
@@ -413,11 +414,27 @@ function setSyncState(cls, label) {
 // ── Helpers ──
 function parseDateStr(s) {
   if (!s) return null;
+  // ISO date: 2026-06-15
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y,mo,d] = s.split('-').map(Number);
+    return new Date(y, mo-1, d);
+  }
+  // Legacy "Jan 8" format
   const mo = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
   const m = s.match(/^([A-Za-z]+)\s+(\d+)/);
   return m ? new Date(2026, mo[m[1]], +m[2]) : null;
 }
-function isPast(t) { const d = parseDateStr(t.date); return d && d < TODAY; }
+function monthFromDate(s) {
+  const d = parseDateStr(s);
+  return d ? d.getMonth() : 0;
+}
+function formatDateDisplay(s) {
+  if (!s) return '';
+  const d = parseDateStr(s);
+  if (!d) return s;
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+}
+function isPast(t) { const d = parseDateStr(t.startDate || t.date); return d && d < TODAY; }
 function progressFor(ti) {
   const t = trips[ti];
   const done = t.items.filter(it => it.status==='Booked'||it.status==='Confirmed').length;
@@ -442,6 +459,7 @@ function updateStats() {
 function tripStatus(ti) {
   const trip = trips[ti];
   const past = isPast(trip);
+  const dateKey = trip.startDate || trip.date;
   const total = trip.items.length;
   if (total === 0) return { key: 'notstarted', color: '#ef4444', pill: 'notstarted', label: 'Not started', icon: '○' };
   const done = trip.items.filter(it => it.status === 'Booked' || it.status === 'Confirmed').length;
@@ -460,6 +478,7 @@ function tripHTML(ti) {
   const [done, total] = progressFor(ti);
   const pct = total ? Math.round(done/total*100) : 0;
   const st = tripStatus(ti);
+  const displayDate = trip.startDate ? formatDateDisplay(trip.startDate) : (trip.date||'');
   let h = `<div class="trip-card${past?' past-trip':''}" id="tc-${ti}">
     <div class="trip-header" onclick="handleHeaderClick(event,${ti})">
       <div class="month-dot" style="background:${st.color}"></div>
@@ -468,7 +487,8 @@ function tripHTML(ti) {
           <span class="trip-name">${esc(trip.name)}</span>
           <span class="status-pill ${st.pill}">${st.icon} ${st.label}</span>
         </div>
-        <div class="trip-date-label">${esc(trip.date)}</div>
+        ${trip.location ? `<div class="trip-location-label">&#128205; ${esc(trip.location)}</div>` : ''}
+        <div class="trip-date-label">${displayDate}</div>
       </div>
       <div class="progress-wrap">
         <div class="progress-bar"><div class="progress-fill" id="pf-${ti}" style="width:${pct}%;background:${st.color}"></div></div>
@@ -496,12 +516,21 @@ function tripHTML(ti) {
 const TABS = ['upcoming', 'all', 'past'];
 
 function indicesFor(tab) {
-  return trips.map((_,i) => i).filter(i => {
-    const past = isPast(trips[i]);
-    if (tab === 'upcoming') return !past;
-    if (tab === 'past') return past;
-    return true;
-  });
+  return trips.map((_,i) => i)
+    .filter(i => {
+      const past = isPast(trips[i]);
+      if (tab === 'upcoming') return !past;
+      if (tab === 'past') return past;
+      return true;
+    })
+    .sort((a,b) => {
+      const da = parseDateStr(trips[a].startDate || trips[a].date);
+      const db = parseDateStr(trips[b].startDate || trips[b].date);
+      if (!da && !db) return 0;
+      if (!da) return 1;
+      if (!db) return -1;
+      return da - db;
+    });
 }
 
 function updateTabCounts() {
@@ -569,7 +598,7 @@ function openEdit(e,ti) {
 
 function openAddTrip() {
   editingIdx = null;
-  editDraft = {name:'',date:'',month:0,items:[]};
+  editDraft = {name:'',startDate:'',location:'',items:[]};
   document.getElementById('tripModalTitle').textContent = 'Add trip';
   document.getElementById('delTripBtn').style.display = 'none';
   renderTripBody();
@@ -578,8 +607,6 @@ function openAddTrip() {
 
 function renderTripBody() {
   const trip = editDraft;
-  const monthOpts = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-    .map((m,i)=>`<option value="${i}"${i===trip.month?' selected':''}>${m}</option>`).join('');
   const rows = trip.items.map((it,ii)=>`<tr>
     <td><input class="table-input" value="${esc(it.name)}" oninput="editDraft.items[${ii}].name=this.value"></td>
     <td><input class="table-input" value="${esc(it.date||'')}" oninput="editDraft.items[${ii}].date=this.value" style="max-width:88px"></td>
@@ -591,12 +618,10 @@ function renderTripBody() {
   document.getElementById('tripModalBody').innerHTML = `
     <p class="section-label">Trip details</p>
     <div class="trip-fields-grid">
-      <div class="field-group"><label class="field-label">Name</label><input class="field-input" value="${esc(trip.name)}" oninput="editDraft.name=this.value" placeholder="e.g. Austin Trip"></div>
-      <div class="field-group"><label class="field-label">Date label</label><input class="field-input" value="${esc(trip.date)}" oninput="editDraft.date=this.value" placeholder="e.g. Jun 15"></div>
+      <div class="field-group"><label class="field-label">Trip name</label><input class="field-input" value="${esc(trip.name)}" oninput="editDraft.name=this.value" placeholder="e.g. Ben Wedding"></div>
+      <div class="field-group"><label class="field-label">Date</label><input class="field-input" type="date" value="${esc(trip.startDate||'')}" onchange="editDraft.startDate=this.value"></div>
     </div>
-    <div class="field-group"><label class="field-label">Month (for color)</label>
-      <select class="field-input" onchange="editDraft.month=parseInt(this.value)" style="max-width:160px">${monthOpts}</select>
-    </div>
+    <div class="field-group"><label class="field-label">Location</label><input class="field-input" value="${esc(trip.location||'')}" oninput="editDraft.location=this.value" placeholder="e.g. Austin, TX"></div>
     <p class="section-label">Requirements</p>
     <div style="overflow-x:auto">
       <table class="items-table">
@@ -612,6 +637,10 @@ function removeItem(ii) { editDraft.items.splice(ii,1); renderTripBody(); }
 
 async function saveTrip() {
   if (!editDraft.name.trim()) { showToast('Please enter a trip name'); return; }
+  // Sync legacy date field from startDate for backward compat
+  if (editDraft.startDate) {
+    editDraft.month = monthFromDate(editDraft.startDate);
+  }
   if (editingIdx===null) trips.push(JSON.parse(JSON.stringify(editDraft)));
   else trips[editingIdx] = JSON.parse(JSON.stringify(editDraft));
   closeModal('tripModal');
