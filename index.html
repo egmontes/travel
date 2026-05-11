@@ -1164,7 +1164,7 @@ function openEdit(e,ti) {
   document.getElementById('delTripBtn').style.display = '';
   renderTripBody();
   const modal = document.getElementById('tripModal');
-  const theme = trips[ti]?.category ? CATEGORY_THEME[trips[ti].category] : null;
+  const theme = null; // new trip has no category yet
   if (theme) {
     modal.style.setProperty('--trip-border', theme.border);
     modal.querySelector('.modal').style.borderColor = theme.border;
@@ -1182,7 +1182,7 @@ function openAddTrip() {
   document.getElementById('delTripBtn').style.display = 'none';
   renderTripBody();
   const modal = document.getElementById('tripModal');
-  const theme = trips[ti]?.category ? CATEGORY_THEME[trips[ti].category] : null;
+  const theme = null; // new trip has no category yet
   if (theme) {
     modal.style.setProperty('--trip-border', theme.border);
     modal.querySelector('.modal').style.borderColor = theme.border;
@@ -1216,10 +1216,16 @@ function renderTripBody() {
   document.getElementById('tripModalBody').innerHTML = `
     <p class="section-label">Trip details</p>
     <div class="trip-fields-grid">
+      <div class="field-group"><label class="field-label">Category</label>
+        <select class="field-input" onchange="window._editDraft.category=this.value">
+          <option value="">— Select —</option>
+          ${[['Wedding','💍'],['Vacation','🌴'],['Holiday','🎄'],['Work','💼'],['Party','🎉'],['Other','📌']].map(([c,e])=>`<option value="${c}"${trip.category===c?' selected':''}>${e} ${c}</option>`).join('')}
+        </select>
+      </div>
       <div class="field-group"><label class="field-label">Trip name</label><input class="field-input" value="${esc(trip.name)}" oninput="window._editDraft.name=this.value" placeholder="e.g. Ben Wedding"></div>
-      <div class="field-group"><label class="field-label">Date</label><input class="field-input" type="date" value="${esc(trip.startDate||'')}" onchange="window._editDraft.startDate=this.value"></div>
     </div>
     <div class="trip-fields-grid">
+      <div class="field-group"><label class="field-label">Date</label><input class="field-input" type="date" value="${esc(trip.startDate||'')}" onchange="window._editDraft.startDate=this.value"></div>
       <div class="field-group"><label class="field-label">Location</label>
         <div class="location-wrap" id="loc-wrap">
           <input class="field-input" id="loc-input" value="${esc(trip.location||'')}"
@@ -1229,12 +1235,6 @@ function renderTripBody() {
             autocomplete="off">
           <div class="location-dropdown" id="loc-dropdown" style="display:none"></div>
         </div>
-      </div>
-      <div class="field-group"><label class="field-label">Category</label>
-        <select class="field-input" onchange="window._editDraft.category=this.value">
-          <option value="">— Select —</option>
-          ${[['Wedding','💍'],['Vacation','🌴'],['Holiday','🎄'],['Work','💼'],['Party','🎉'],['Other','📌']].map(([c,e])=>`<option value="${c}"${trip.category===c?' selected':''}>${e} ${c}</option>`).join('')}
-        </select>
       </div>
     </div>
     <p class="section-label">Activities</p>
