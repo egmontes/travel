@@ -870,7 +870,7 @@ function tripHTML(ti) {
 
     h += `<div class="col-header"><span class="col-label">Activity</span><span class="col-label">Details</span><span class="col-label">Status</span><span class="col-label">Notes</span></div>
     <div class="mobile-activities-label">📋 Activities</div>
-    <div class="trip-items">`;
+    <div class="trip-items-wrap" id="tiw-${ti}"><div class="trip-items" onscroll="updateTripItemsFade(this)">`;
     sortedItems.forEach(({item, ii}) => {
       h += `<div class="item-row">
         <!-- Desktop: name cell -->
@@ -893,7 +893,7 @@ function tripHTML(ti) {
         <div class="item-notes-cell${item.notes || item.details && detailsOptsFor(item.name) === null ? ' has-notes' : ''}">${notesCell(item,ti,ii)}</div>
       </div>`;
     });
-    h += '</div>'; // close trip-items
+    h += '</div></div>'; // close trip-items and trip-items-wrap
     h += `<div class="add-req-trigger" onclick="toggleAddReq(event,${ti})" id="add-req-trigger-${ti}">
       <span style="font-size:16px;line-height:1">+</span> Add activity
     </div>
@@ -1333,6 +1333,13 @@ function handleMobileItemModalClick(e) {
   e.stopPropagation();
 }
 
+function updateTripItemsFade(el) {
+  const wrap = el.closest('.trip-items-wrap');
+  if (!wrap) return;
+  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
+  wrap.classList.toggle('at-bottom', atBottom);
+}
+
 function onDetailChange(ti, ii, val) {
   trips[ti].items[ii].details = val;
   persist();
@@ -1761,7 +1768,7 @@ Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, updat
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
   closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab, openCalendar, calShift, openMapModal,
   toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey,
-  refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell, notesCell, switchNotesToEdit, extractUrl, detailsInput, modalDetailsInputChange, addDetailsInput, closeDetailsDropdown, locationInput, selectLocation, closeLocationDropdown, openMobileItemEdit, closeMobileItemModal, handleMobileItemModalClick, mobileItemChange });
+  refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell, notesCell, switchNotesToEdit, extractUrl, detailsInput, modalDetailsInputChange, addDetailsInput, closeDetailsDropdown, locationInput, selectLocation, closeLocationDropdown, openMobileItemEdit, closeMobileItemModal, handleMobileItemModalClick, mobileItemChange, updateTripItemsFade });
 
 
 
