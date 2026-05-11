@@ -827,8 +827,9 @@ function tripHTML(ti) {
         ${notesCell(item,ti,ii)}
       </div>`;
     });
+    h += '</div>'; // close trip-items
     h += `<div class="add-req-trigger" onclick="toggleAddReq(event,${ti})" id="add-req-trigger-${ti}">
-      <span style="font-size:16px;line-height:1">+</span> Add item
+      <span style="font-size:16px;line-height:1">+</span> Add activity
     </div>
     <div class="add-req-row" id="add-req-row-${ti}" style="display:none">
       <div style="display:flex;flex-direction:column;gap:8px">
@@ -884,7 +885,6 @@ function tripHTML(ti) {
         <button class="add-req-btn" style="color:var(--text);border-color:var(--border-secondary);font-weight:500" onclick="commitAddReq(${ti})">Add activity</button>
       </div>
     </div>`;
-    h += '</div>';
   }
   return h + '</div>';
 }
