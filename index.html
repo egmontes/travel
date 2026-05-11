@@ -269,6 +269,7 @@
     .swipe-hint { display: block; }
   }
 </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
 <div class="page">
@@ -282,6 +283,7 @@
         <button class="btn" onclick="expandAll()">Expand all</button>
         <button class="btn" onclick="collapseAll()">Collapse all</button>
         <button class="btn" onclick="openCalendar()">📅 Calendar</button>
+        <button class="btn" onclick="openMapModal()">🗺 Map</button>
       </div>
       <div class="sync-bar" style="margin:0;min-height:auto">
         <div class="sync-dot" id="syncDot"></div>
@@ -1751,7 +1753,7 @@ function showToast(msg) {
 // expose to inline handlers
 Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, updateFade, detailsOptsFor, detailsCell, modalDetailsCell, openEdit, openAddTrip, statusColorClass,
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
-  closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab, openCalendar, calShift,
+  closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab, openCalendar, calShift, openMapModal,
   toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey,
   refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell, notesCell, switchNotesToEdit, extractUrl, detailsInput, modalDetailsInputChange, addDetailsInput, closeDetailsDropdown, locationInput, selectLocation, closeLocationDropdown, openMobileItemEdit, closeMobileItemModal, handleMobileItemModalClick, mobileItemChange });
 
@@ -1879,6 +1881,74 @@ function renderCal() {
   ).join('');
 }
 
+
+// ── Map ──
+let _map = null;
+
+async function openMapModal() {
+  document.getElementById('mapModal').classList.add('open');
+  const container = document.getElementById('mapContainer');
+  if (!container) return;
+
+  // Collect trips with geocoded locations
+  const toGeocode = trips.filter(t => t.location && !t._latlng);
+
+  // Geocode any missing locations via Nominatim
+  for (const trip of toGeocode) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(trip.location)}&format=json&limit=1`;
+      const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+      const data = await res.json();
+      if (data[0]) trip._latlng = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+    } catch(e) {}
+  }
+
+  const pinned = trips.filter(t => t._latlng);
+  if (!pinned.length) {
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-tertiary);font-size:14px">No locations to show</div>';
+    return;
+  }
+
+  // Load Leaflet if needed
+  if (!window.L) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  // Init or reset map
+  if (_map) { _map.remove(); _map = null; }
+  container.style.background = '';
+  container.innerHTML = '';
+
+  _map = L.map(container, { zoomControl: true, attributionControl: false });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(_map);
+
+  const bounds = L.latLngBounds();
+  pinned.forEach(trip => {
+    const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
+    const color = theme ? theme.text : '#5f5e5a';
+    const display = locationDisplayStr(trip) || trip.name;
+
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="background:${color};color:#fff;border-radius:50% 50% 50% 0;width:28px;height:28px;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center">
+        <span style="transform:rotate(45deg);font-size:13px">${theme ? theme.emoji : '📌'}</span></div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 28],
+      popupAnchor: [0, -30],
+    });
+
+    const marker = L.marker(trip._latlng, { icon }).addTo(_map);
+    marker.bindPopup(`<strong>${esc(trip.name)}</strong><br><small>${esc(display)}</small>`);
+    bounds.extend(trip._latlng);
+  });
+
+  _map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
+}
 // ── Swipe gesture support ──
 (function() {
   const SWIPE_TABS = ['upcoming', 'all', 'past'];
@@ -2010,6 +2080,19 @@ const HARDCODED_CFG = {
 
 connect(HARDCODED_CFG);
 </script>
+<!-- Map Modal -->
+<div class="modal-backdrop" id="mapModal" onclick="handleBackdropClick(event,'mapModal')">
+  <div class="modal" style="max-width:800px;width:95vw">
+    <div class="modal-header">
+      <span class="modal-title">🗺 Trip Map</span>
+      <button class="modal-close" onclick="closeModal('mapModal')">&#215;</button>
+    </div>
+    <div class="modal-body" style="padding:0;overflow:hidden;border-radius:0 0 var(--radius-lg) var(--radius-lg)">
+      <div id="mapContainer" style="width:100%;height:65vh"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Calendar Modal -->
 <div class="modal-backdrop" id="calendarModal" onclick="handleBackdropClick(event,'calendarModal')">
   <div class="modal" style="max-width:700px">
