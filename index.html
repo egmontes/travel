@@ -189,6 +189,14 @@
   }
 
   /* Custom details dropdown */
+  .location-wrap { position: relative; display: block; }
+  .location-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg); border: 1px solid var(--border-secondary); border-radius: var(--radius-md); z-index: 600; box-shadow: 0 4px 16px rgba(0,0,0,0.12); overflow: hidden; margin-top: 2px; max-height: 220px; overflow-y: auto; }
+  .location-opt { padding: 9px 12px; font-size: 13px; cursor: pointer; color: var(--text); border-bottom: 1px solid var(--border); }
+  .location-opt:last-child { border-bottom: none; }
+  .location-opt:hover { background: var(--bg-secondary); }
+  .location-opt-main { font-weight: 500; }
+  .location-opt-sub { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
+  .location-searching { padding: 10px 12px; font-size: 12px; color: var(--text-tertiary); text-align: center; }
   .details-wrap { position: relative; display: block; }
   .details-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg); border: 1px solid var(--border-secondary); border-radius: var(--radius-md); z-index: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.12); overflow: hidden; margin-top: 2px; }
   .details-opt { padding: 7px 10px; font-size: 13px; cursor: pointer; color: var(--text); }
@@ -704,6 +712,26 @@ function tripStatus(ti) {
   return           { key: 'notstarted',         color: '#ef4444', pill: 'notstarted', label: 'Not started',  icon: '○' };
 }
 
+function locationDisplayStr(trip) {
+  if (trip.locationDisplay) return trip.locationDisplay;
+  if (!trip.location) return '';
+  const parts = trip.location.split(',').map(s => s.trim()).filter(Boolean);
+  const skipPat = /^[\d\s]+$|^\d{4,}$|^[A-Z]{2}$/;
+  const streetWords = /^(street|st|avenue|ave|road|rd|drive|dr|blvd|lane|ln|way|court|ct|place|pl|highway|hwy|plaza|square|park|center|centre)$/i;
+  const isCity = p => {
+    if (skipPat.test(p) || p.length <= 3) return false;
+    return !p.split(' ').some(w => streetWords.test(w));
+  };
+  // Score each segment — prefer ones without digits and without street words
+  const candidates = parts.filter(isCity);
+  // Pick the one most likely to be a city: prefer parts without numbers, mid-to-late in the address
+  // (Nominatim puts city after neighborhood/suburb)
+  const noNumbers = candidates.filter(p => !/\d/.test(p));
+  if (noNumbers.length >= 2) return noNumbers[1]; // 2nd city-like = usually the actual city
+  if (noNumbers.length === 1) return noNumbers[0];
+  return candidates[0] || parts.find(p => !skipPat.test(p)) || trip.location;
+}
+
 function countdownStr(trip) {
   const d = parseDateStr(trip.startDate || trip.date);
   if (!d) return null;
@@ -938,6 +966,63 @@ function handleHeaderClick(e,ti) {
   updateFade();
 }
 
+// ── Location autocomplete via OpenStreetMap Nominatim ──
+let _locTimer = null;
+
+function locationInput(val) {
+  if (window._editDraft) { window._editDraft.location = val; window._editDraft.locationDisplay = null; }
+  clearTimeout(_locTimer);
+  const dd = document.getElementById('loc-dropdown');
+  if (!dd) return;
+  if (!val || val.length < 3) { dd.style.display = 'none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = '<div class="location-searching">Searching…</div>';
+  _locTimer = setTimeout(() => fetchLocations(val), 400);
+}
+
+async function fetchLocations(query) {
+  const dd = document.getElementById('loc-dropdown');
+  if (!dd) return;
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&addressdetails=1`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    const data = await res.json();
+    if (!data.length) { dd.innerHTML = '<div class="location-searching">No results found</div>'; return; }
+    dd.innerHTML = data.map(place => {
+      const addr = place.address || {};
+      const city = addr.city || addr.town || addr.village || addr.municipality || '';
+      const state = addr.state || addr.region || '';
+      const country = addr.country || '';
+      const displayLabel = city || state || country || 'TBD';
+      const sub = [city ? state : '', country].filter(Boolean).join(', ');
+      // Store full address but show short label in dropdown
+      const fullAddr = place.display_name;
+      return `<div class="location-opt" onmousedown="selectLocation('${fullAddr.replace(/'/g,"\\'")}','${displayLabel.replace(/'/g,"\\'")}')">
+        <div class="location-opt-main">${esc(displayLabel)}</div>
+        <div class="location-opt-sub">${esc(fullAddr)}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    if (dd) dd.innerHTML = '<div class="location-searching">Search unavailable</div>';
+  }
+}
+
+function selectLocation(fullAddr, displayLabel) {
+  const inp = document.getElementById('loc-input');
+  // Store full address in the input and draft
+  if (inp) inp.value = fullAddr;
+  if (window._editDraft) {
+    window._editDraft.location = fullAddr;
+    window._editDraft.locationDisplay = displayLabel || fullAddr;
+  }
+  closeLocationDropdown();
+}
+
+function closeLocationDropdown() {
+  const dd = document.getElementById('loc-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+
 function detailsInput(inp) {
   const opts = JSON.parse(inp.dataset.opts || '[]');
   const val = inp.value;
@@ -1071,6 +1156,8 @@ function openEdit(e,ti) {
   if (!window._editDraft.startDate) window._editDraft.startDate = '';
   if (window._editDraft.location === undefined) window._editDraft.location = '';
   if (window._editDraft.category === undefined) window._editDraft.category = '';
+  // locationDisplay stores the short display version of a geocoded location
+  if (window._editDraft.locationDisplay === undefined) window._editDraft.locationDisplay = null;
   document.getElementById('tripModalTitle').textContent = 'Edit trip';
   document.getElementById('delTripBtn').style.display = '';
   renderTripBody();
@@ -1131,7 +1218,16 @@ function renderTripBody() {
       <div class="field-group"><label class="field-label">Date</label><input class="field-input" type="date" value="${esc(trip.startDate||'')}" onchange="window._editDraft.startDate=this.value"></div>
     </div>
     <div class="trip-fields-grid">
-      <div class="field-group"><label class="field-label">Location</label><input class="field-input" value="${esc(trip.location||'')}" oninput="window._editDraft.location=this.value" placeholder="e.g. Austin, TX"></div>
+      <div class="field-group"><label class="field-label">Location</label>
+        <div class="location-wrap" id="loc-wrap">
+          <input class="field-input" id="loc-input" value="${esc(trip.location||'')}"
+            oninput="locationInput(this.value)"
+            onblur="setTimeout(()=>closeLocationDropdown(),200)"
+            placeholder="e.g. Austin, TX or Madison Square Garden"
+            autocomplete="off">
+          <div class="location-dropdown" id="loc-dropdown" style="display:none"></div>
+        </div>
+      </div>
       <div class="field-group"><label class="field-label">Category</label>
         <select class="field-input" onchange="window._editDraft.category=this.value">
           <option value="">— Select —</option>
@@ -1414,7 +1510,7 @@ Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, updat
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
   closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab,
   toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey,
-  refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell, notesCell, switchNotesToEdit, extractUrl, detailsInput, modalDetailsInputChange, addDetailsInput, closeDetailsDropdown });
+  refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell, notesCell, switchNotesToEdit, extractUrl, detailsInput, modalDetailsInputChange, addDetailsInput, closeDetailsDropdown, locationInput, selectLocation, closeLocationDropdown });
 
 
 
