@@ -234,21 +234,28 @@
   @keyframes spin { to { transform:rotate(360deg); } }
 
   /* Calendar */
-  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-  .cal-day-label { font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-align: center; padding: 4px 0; text-transform: uppercase; }
-  .cal-day { min-height: 60px; padding: 4px; border-radius: 6px; border: 1px solid transparent; position: relative; vertical-align: top; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; border-left: 1px solid var(--border); border-top: 1px solid var(--border); }
+  .cal-day-label { font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-align: center; padding: 6px 0; text-transform: uppercase; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--bg-secondary); }
+  .cal-day { height: 80px; padding: 4px 0 4px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); position: relative; vertical-align: top; box-sizing: border-box; overflow: visible; }
+  .cal-day-num { position: relative; z-index: 10; }
   .cal-day.other-month { opacity: 0.3; }
-  .cal-day.today { border-color: var(--border-secondary); background: var(--bg-secondary); }
-  .cal-day-num { font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 2px; }
+  .cal-day.today { background: var(--bg-secondary); }
+  .cal-day-num { font-size: 11px; font-weight: 500; color: var(--text-secondary); margin-bottom: 3px; padding: 0 4px; }
   .cal-day.today .cal-day-num { color: var(--text); font-weight: 700; }
-  .cal-event { font-size: 10px; font-weight: 500; border-radius: 3px; padding: 1px 4px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
-  .cal-event-start { border-radius: 3px 0 0 3px; }
-  .cal-event-mid { border-radius: 0; margin-left: -2px; margin-right: -2px; }
-  .cal-event-end { border-radius: 0 3px 3px 0; }
+  .cal-event { font-size: 10px; font-weight: 500; padding: 2px 0; margin-bottom: 1px; white-space: nowrap; overflow: visible; cursor: default; display: block; height: 22px; }
   .cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-secondary); }
+  .cal-popup-backdrop { display:none;position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,0.45); }
+  .cal-popup-backdrop.open { display:flex;align-items:center;justify-content:center; }
+  .cal-popup { background:var(--bg);border-radius:var(--radius-lg);padding:0;min-width:260px;max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.2);overflow:hidden; }
+  .cal-popup-banner { padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:center;gap:6px; }
+  .cal-popup-title { font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;padding:10px 14px 4px; }
+  .cal-popup-row { font-size:13px;color:var(--text-secondary);padding:3px 14px;display:flex;align-items:center;gap:6px; }
+  .cal-popup-status { margin:8px 0;display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:3px 10px;border-radius:99px; }
+  .cal-popup-close { position:absolute;top:8px;right:10px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary);line-height:1; }
+  .cal-event { cursor: pointer; }
   .cal-legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
   @media (max-width: 600px) {
-    .cal-day { min-height: 44px; padding: 3px; }
+    .cal-day { height: 58px; }
     .cal-event { font-size: 9px; padding: 1px 2px; }
   }
   /* Custom details dropdown */
@@ -1831,7 +1838,7 @@ function showToast(msg) {
 // expose to inline handlers
 Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, updateFade, detailsOptsFor, detailsCell, modalDetailsCell, openEdit, openAddTrip, statusColorClass,
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
-  closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab, openCalendar, calShift, openMapModal,
+  closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab, openCalendar, calShift, openMapModal, openCalPopup, closeCalPopup,
   toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey,
   refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell, notesCell, detailsInput, modalDetailsInputChange, addDetailsInput, closeDetailsDropdown, locationInput, selectLocation, closeLocationDropdown, openMobileItemEdit, closeMobileItemModal, handleMobileItemModalClick, mobileItemChange, updateTripItemsFade, openNotesModal, closeNotesModal, saveNotesModal });
 
@@ -1894,15 +1901,20 @@ function renderCal() {
     // Extract solid color from theme border rgba for visible calendar bars
     const color = theme ? (()=>{ const m=theme.border.match(/rgba\((\d+),(\d+),(\d+)/); return m?`rgb(${m[1]},${m[2]},${m[3]})`:theme.text; })() : TRIP_COLORS_CAL[colorIdx++ % TRIP_COLORS_CAL.length];
     const textColor = color;
-    // Use trip start date; end date = last activity date or same as start
-    const start = parseDateStr(trip.startDate || trip.date);
-    if (!start) return null;
-    // Try to find latest activity date as trip end
-    let end = new Date(start);
+    // Collect all dates: trip date + all activity start/end dates
+    const tripDate = parseDateStr(trip.startDate || trip.date);
+    const allDates = [tripDate].filter(Boolean);
     trip.items.forEach(it => {
-      const d = parseDateStr(it.dateEnd || it.dateStart || it.date);
-      if (d && d > end) end = d;
+      const ds = parseDateStr(it.dateStart || it.date);
+      const de = parseDateStr(it.dateEnd);
+      if (ds) allDates.push(ds);
+      if (de) allDates.push(de);
     });
+    if (!allDates.length) return null;
+    // Start = earliest date, End = latest date
+    const start = new Date(Math.min(...allDates));
+    const end = new Date(Math.max(...allDates));
+    if (!start) return null;
     return { trip, ti, color, textColor, start, end };
   }).filter(Boolean);
 
@@ -1934,14 +1946,27 @@ function renderCal() {
   for (let d = 1; d <= daysInMonth; d++, cell++) {
     const isToday = TODAY.getDate() === d && TODAY.getMonth() === calMonth && TODAY.getFullYear() === calYear;
     const events = eventMap[d] || [];
-    let evHtml = events.slice(0, 3).map(({trip, color, isStart, isEnd}) => {
-      const br = isStart && isEnd ? '3px' : isStart ? '3px 0 0 3px' : isEnd ? '0 3px 3px 0' : '0';
-      const label = isStart ? esc(trip.name) : '&nbsp;';
-      // Use white text on dark colors, dark text on light ones
+    let evHtml = events.slice(0, 3).map(({trip, ti: tripIdx, color, isStart, isEnd, spanStart, spanEnd}) => {
       const lum = parseInt(color.slice(1),16); const r=(lum>>16)&255,g=(lum>>8)&255,b=lum&255;
       const bright = (r*299+g*587+b*114)/1000;
       const txtColor = bright > 160 ? '#1a1a1a' : '#ffffff';
-      return `<div class="cal-event" style="background:${color};color:${txtColor};border-radius:${br};margin:0 ${isEnd?'0':'-1px'} 1px ${isStart?'0':'-1px'}" title="${esc(trip.name)}">${label}</div>`;
+      const ml = isStart ? '0' : '-1px';
+      const mr = isEnd ? '0' : '-1px';
+      const bl = isStart ? '3px' : '0';
+      const er = isEnd ? '3px' : '0';
+      const borderRadius = `${bl} ${er} ${er} ${bl}`;
+      // Bar: colored background, no text (text handled via overlay)
+      const showLabel = isStart;
+      const col = cell % 7;
+      const cellsToRowEnd = 7 - col;
+      const cellsInSpan = Math.min(spanEnd - d + 1, cellsToRowEnd);
+      // Label width spans N cells. Each cell is 1/7 of grid width.
+      // We go from left edge of this cell to right edge of last cell in span.
+      const labelStyle = showLabel
+        ? `position:absolute;left:4px;top:0;right:0;pointer-events:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:calc(${cellsInSpan * 100}% + ${(cellsInSpan-1) * 1}px - 4px);z-index:3;line-height:22px;`
+        : 'display:none';
+      const labelEl = `<span style="${labelStyle}">${showLabel ? esc(trip.name) : ''}</span>`;
+      return `<div class="cal-event" style="background:${color};color:${txtColor};border-radius:${borderRadius};margin:0 ${mr} 2px ${ml};position:relative;overflow:visible" title="${esc(trip.name)}" onclick="event.stopPropagation();openCalPopup(${tripIdx})">${labelEl}</div>`;
     }).join('');
     if (events.length > 3) evHtml += `<div style="font-size:9px;color:var(--text-tertiary)">+${events.length-3}</div>`;
     html += `<div class="cal-day${isToday?' today':''}"><div class="cal-day-num">${d}</div>${evHtml}</div>`;
@@ -2029,6 +2054,38 @@ async function openMapModal() {
 
   _map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
 }
+// ── Calendar trip popup ──
+function openCalPopup(ti) {
+  const trip = trips[ti];
+  if (!trip) return;
+  const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
+  const color = theme ? theme.text : '#5f5e5a';
+  const bg = theme ? theme.bg : 'var(--bg-secondary)';
+  const border = theme ? theme.border : 'var(--border)';
+  const st = tripStatus(ti);
+  const display = locationDisplayStr(trip);
+  const cd = countdownStr(trip);
+
+  document.getElementById('calPopupContent').innerHTML = `
+    <div class="cal-popup-banner" style="background:${bg};border-bottom:1px solid ${border};color:${color}">
+      ${theme ? `${theme.emoji} ${esc(trip.category)}` : '📌 TBD'}
+
+    </div>
+    <div class="cal-popup-title" style="color:${color}">${esc(trip.name)}</div>
+    ${trip.startDate ? `<div class="cal-popup-row">📅 ${formatDateDisplay(trip.startDate)}</div>` : ''}
+    ${display ? `<div class="cal-popup-row">📍 ${esc(display)}</div>` : ''}
+    ${trip.link ? `<div class="cal-popup-row">🔗 <a href="${esc(trip.link)}" target="_blank" onclick="event.stopPropagation()" style="color:var(--info-text,#185fa5);text-decoration:underline">${esc(trip.linkText || trip.link)}</a></div>` : ''}
+    <div style="padding:4px 14px 12px">
+      <span class="status-pill ${st.pill}">${st.icon} ${st.label}</span>
+    </div>
+  `;
+  document.getElementById('calPopupBackdrop').classList.add('open');
+}
+
+function closeCalPopup() {
+  document.getElementById('calPopupBackdrop').classList.remove('open');
+}
+
 // ── Swipe gesture support ──
 (function() {
   const SWIPE_TABS = ['upcoming', 'all', 'past'];
@@ -2198,6 +2255,14 @@ connect(HARDCODED_CFG);
       <button class="btn" onclick="closeNotesModal()">Cancel</button>
       <button class="btn btn-primary" onclick="saveNotesModal()">Save</button>
     </div>
+  </div>
+</div>
+
+<!-- Calendar Trip Popup -->
+<div class="cal-popup-backdrop" id="calPopupBackdrop" onclick="closeCalPopup()">
+  <div class="cal-popup" onclick="event.stopPropagation()" style="position:relative">
+    <button class="cal-popup-close" onclick="closeCalPopup()">&#215;</button>
+    <div id="calPopupContent"></div>
   </div>
 </div>
 
