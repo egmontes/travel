@@ -209,6 +209,24 @@
     .status-pill.notstarted{ background: #450a0a; color: #fca5a5; }
   }
 
+  /* Calendar */
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-day-label { font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-align: center; padding: 4px 0; text-transform: uppercase; }
+  .cal-day { min-height: 60px; padding: 4px; border-radius: 6px; border: 1px solid transparent; position: relative; vertical-align: top; }
+  .cal-day.other-month { opacity: 0.3; }
+  .cal-day.today { border-color: var(--border-secondary); background: var(--bg-secondary); }
+  .cal-day-num { font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 2px; }
+  .cal-day.today .cal-day-num { color: var(--text); font-weight: 700; }
+  .cal-event { font-size: 10px; font-weight: 500; border-radius: 3px; padding: 1px 4px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+  .cal-event-start { border-radius: 3px 0 0 3px; }
+  .cal-event-mid { border-radius: 0; margin-left: -2px; margin-right: -2px; }
+  .cal-event-end { border-radius: 0 3px 3px 0; }
+  .cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-secondary); }
+  .cal-legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  @media (max-width: 600px) {
+    .cal-day { min-height: 44px; padding: 3px; }
+    .cal-event { font-size: 9px; padding: 1px 2px; }
+  }
   /* Custom details dropdown */
   .location-wrap { position: relative; display: block; }
   .location-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg); border: 1px solid var(--border-secondary); border-radius: var(--radius-md); z-index: 600; box-shadow: 0 4px 16px rgba(0,0,0,0.12); overflow: hidden; margin-top: 2px; max-height: 220px; overflow-y: auto; }
@@ -263,7 +281,7 @@
       <div class="header-actions">
         <button class="btn" onclick="expandAll()">Expand all</button>
         <button class="btn" onclick="collapseAll()">Collapse all</button>
-        <button class="btn" onclick="exportCSV()">Export ↗</button>
+        <button class="btn" onclick="openCalendar()">📅 Calendar</button>
       </div>
       <div class="sync-bar" style="margin:0;min-height:auto">
         <div class="sync-dot" id="syncDot"></div>
@@ -1733,7 +1751,7 @@ function showToast(msg) {
 // expose to inline handlers
 Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, updateFade, detailsOptsFor, detailsCell, modalDetailsCell, openEdit, openAddTrip, statusColorClass,
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
-  closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab,
+  closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab, openCalendar, calShift,
   toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey,
   refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell, notesCell, switchNotesToEdit, extractUrl, detailsInput, modalDetailsInputChange, addDetailsInput, closeDetailsDropdown, locationInput, selectLocation, closeLocationDropdown, openMobileItemEdit, closeMobileItemModal, handleMobileItemModalClick, mobileItemChange });
 
@@ -1753,6 +1771,113 @@ function updateFade() {
 
 function expandAll() { trips.forEach((_,i)=>expanded[i]=true); renderAll(); updateFade(); }
 function collapseAll() { expanded={}; renderAll(); updateFade(); }
+
+
+// ── Calendar ──
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+
+const TRIP_COLORS_CAL = [
+  '#378ADD','#E24B4A','#1D9E75','#D4537E','#639922',
+  '#0F6E56','#D85A30','#BA7517','#534AB7','#985EA5','#0C447C'
+];
+
+function openCalendar() {
+  calYear = TODAY.getFullYear();
+  calMonth = TODAY.getMonth();
+  renderCal();
+  document.getElementById('calendarModal').classList.add('open');
+}
+
+function calShift(dir) {
+  calMonth += dir;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0)  { calMonth = 11; calYear--; }
+  renderCal();
+}
+
+function renderCal() {
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  document.getElementById('calTitle').textContent = MONTHS[calMonth] + ' ' + calYear;
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const daysInPrev = new Date(calYear, calMonth, 0).getDate();
+  const monthStart = new Date(calYear, calMonth, 1);
+  const monthEnd = new Date(calYear, calMonth, daysInMonth);
+
+  // Assign each trip a color and find which overlap this month
+  let colorIdx = 0;
+  const tripMeta = trips.map((trip, ti) => {
+    const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
+    // Extract solid color from theme border rgba for visible calendar bars
+    const color = theme ? (()=>{ const m=theme.border.match(/rgba\((\d+),(\d+),(\d+)/); return m?`rgb(${m[1]},${m[2]},${m[3]})`:theme.text; })() : TRIP_COLORS_CAL[colorIdx++ % TRIP_COLORS_CAL.length];
+    const textColor = color;
+    // Use trip start date; end date = last activity date or same as start
+    const start = parseDateStr(trip.startDate || trip.date);
+    if (!start) return null;
+    // Try to find latest activity date as trip end
+    let end = new Date(start);
+    trip.items.forEach(it => {
+      const d = parseDateStr(it.dateEnd || it.dateStart || it.date);
+      if (d && d > end) end = d;
+    });
+    return { trip, ti, color, textColor, start, end };
+  }).filter(Boolean);
+
+  // Filter to trips that overlap this month
+  const visible = tripMeta.filter(m => m.start <= monthEnd && m.end >= monthStart);
+
+  // Build event map: day number -> array of events
+  const eventMap = {};
+  visible.forEach(m => {
+    // Clamp to this month
+    const s = Math.max(1, m.start.getMonth() === calMonth && m.start.getFullYear() === calYear ? m.start.getDate() : 1);
+    const e = Math.min(daysInMonth, m.end.getMonth() === calMonth && m.end.getFullYear() === calYear ? m.end.getDate() : daysInMonth);
+    for (let d = s; d <= e; d++) {
+      if (!eventMap[d]) eventMap[d] = [];
+      const isStart = d === s;
+      const isEnd = d === e;
+      eventMap[d].push({ ...m, isStart, isEnd, spanStart: s, spanEnd: e });
+    }
+  });
+
+  // Build grid
+  let html = '<div class="cal-grid">';
+  DAYS.forEach(d => { html += `<div class="cal-day-label">${d}</div>`; });
+
+  let cell = 0;
+  for (let i = 0; i < firstDay; i++, cell++) {
+    html += `<div class="cal-day other-month"><div class="cal-day-num">${daysInPrev - firstDay + 1 + i}</div></div>`;
+  }
+  for (let d = 1; d <= daysInMonth; d++, cell++) {
+    const isToday = TODAY.getDate() === d && TODAY.getMonth() === calMonth && TODAY.getFullYear() === calYear;
+    const events = eventMap[d] || [];
+    let evHtml = events.slice(0, 3).map(({trip, color, isStart, isEnd}) => {
+      const br = isStart && isEnd ? '3px' : isStart ? '3px 0 0 3px' : isEnd ? '0 3px 3px 0' : '0';
+      const label = isStart ? esc(trip.name) : '&nbsp;';
+      // Use white text on dark colors, dark text on light ones
+      const lum = parseInt(color.slice(1),16); const r=(lum>>16)&255,g=(lum>>8)&255,b=lum&255;
+      const bright = (r*299+g*587+b*114)/1000;
+      const txtColor = bright > 160 ? '#1a1a1a' : '#ffffff';
+      return `<div class="cal-event" style="background:${color};color:${txtColor};border-radius:${br};margin:0 ${isEnd?'0':'-1px'} 1px ${isStart?'0':'-1px'}" title="${esc(trip.name)}">${label}</div>`;
+    }).join('');
+    if (events.length > 3) evHtml += `<div style="font-size:9px;color:var(--text-tertiary)">+${events.length-3}</div>`;
+    html += `<div class="cal-day${isToday?' today':''}"><div class="cal-day-num">${d}</div>${evHtml}</div>`;
+  }
+  const remaining = (7 - (cell % 7)) % 7;
+  for (let d = 1; d <= remaining; d++) {
+    html += `<div class="cal-day other-month"><div class="cal-day-num">${d}</div></div>`;
+  }
+  html += '</div>';
+  document.getElementById('calGrid').innerHTML = html;
+
+  // Legend - only trips visible this month
+  document.getElementById('calLegend').innerHTML = visible.map(({trip, color}) =>
+    `<div class="cal-legend-item"><div class="cal-legend-dot" style="background:${color}"></div>${esc(trip.name)}</div>`
+  ).join('');
+}
 
 // ── Swipe gesture support ──
 (function() {
@@ -1885,6 +2010,24 @@ const HARDCODED_CFG = {
 
 connect(HARDCODED_CFG);
 </script>
+<!-- Calendar Modal -->
+<div class="modal-backdrop" id="calendarModal" onclick="handleBackdropClick(event,'calendarModal')">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="modal-close" onclick="calShift(-1)">&#8592;</button>
+        <span class="modal-title" id="calTitle" style="min-width:160px;text-align:center"></span>
+        <button class="modal-close" onclick="calShift(1)">&#8594;</button>
+      </div>
+      <button class="modal-close" onclick="closeModal('calendarModal')">&#215;</button>
+    </div>
+    <div class="modal-body" style="padding:12px 16px 20px">
+      <div id="calGrid"></div>
+      <div id="calLegend" style="margin-top:14px;display:flex;flex-wrap:wrap;gap:8px"></div>
+    </div>
+  </div>
+</div>
+
 <div class="item-edit-modal mobile-item-modal" id="mobileItemModal" onclick="handleMobileItemModalClick(event)" ontouchstart="event.stopPropagation()" ontouchmove="event.stopPropagation()" ontouchend="event.stopPropagation()">
   <div class="mobile-item-sheet" id="mobileItemSheet">
     <div class="mobile-item-sheet-handle" id="mobileSheetHandle"></div>
