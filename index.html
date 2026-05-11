@@ -994,7 +994,9 @@ async function fetchLocations(query) {
       const city = addr.city || addr.town || addr.village || addr.municipality || '';
       const state = addr.state || addr.region || '';
       const country = addr.country || '';
-      const displayLabel = city || state || country || 'TBD';
+      // Use state abbreviation if available (ISO 3166-2 code minus country prefix)
+      const stateAbbr = addr['ISO3166-2-lvl4'] ? addr['ISO3166-2-lvl4'].split('-').pop() : state;
+      const displayLabel = city ? (stateAbbr ? `${city}, ${stateAbbr}` : city) : (state || country || 'TBD');
       const fullAddr = place.display_name;
       const div = document.createElement('div');
       div.className = 'location-opt';
