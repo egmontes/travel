@@ -136,8 +136,8 @@
   .item-date-lbl { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
   .item-details-lbl { font-size: 13px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .status-select { font-size: 13px; border: 1px solid var(--border-secondary); border-radius: var(--radius-md); padding: 5px 8px; background: var(--bg); color: var(--text); cursor: pointer; width: 100%; font-family: inherit; }
-  .status-select.s-green { background: #dcfce7; color: #166534; border-color: #86efac; }
-  .status-select.s-red   { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+  .status-select.s-green { background: #22c55e; color: #ffffff; border-color: #16a34a; }
+  .status-select.s-red   { background: #ff4444; color: #ffffff; border-color: #cc0000; }
   @media (prefers-color-scheme: dark) {
     .status-select.s-green { background: #14532d; color: #86efac; border-color: #166534; }
     .status-select.s-red   { background: #450a0a; color: #fca5a5; border-color: #991b1b; }
@@ -195,10 +195,10 @@
   /* Trip status indicators */
   .status-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
   .status-pill.complete  { background: #dbeafe; color: #1e40af; }
-  .status-pill.ready     { background: #dcfce7; color: #166534; }
+  .status-pill.ready     { background: #22c55e; color: #ffffff; }
   .status-pill.progress  { background: #fef9c3; color: #854d0e; }
   .status-pill.attention { background: #ffedd5; color: #9a3412; }
-  .status-pill.notstarted{ background: #fee2e2; color: #991b1b; }
+  .status-pill.notstarted{ background: #ff4444; color: #ffffff; }
   .month-dot { transition: background 0.3s; }
 
   @media (prefers-color-scheme: dark) {
@@ -1857,22 +1857,33 @@ document.addEventListener('wheel', function(e) {
   }
 }, { passive: false });
 
-// ── Scroll back after keyboard dismisses on mobile ──
-document.addEventListener('focusout', e => {
-  const tag = e.target.tagName;
-  if (tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA') return;
-  // Small delay to let keyboard animate down first
-  setTimeout(() => {
-    // Scroll the element back into view below the sticky header
-    const stickyHeader = document.querySelector('.sticky-header');
-    const headerH = stickyHeader ? stickyHeader.offsetHeight : 0;
-    const el = e.target;
-    const rect = el.getBoundingClientRect();
-    if (rect.top < headerH + 8) {
-      window.scrollBy({ top: rect.top - headerH - 16, behavior: 'smooth' });
+// ── Scroll back when keyboard dismisses on mobile ──
+if (window.visualViewport) {
+  let lastViewportHeight = window.visualViewport.height;
+  window.visualViewport.addEventListener('resize', () => {
+    const newHeight = window.visualViewport.height;
+    const diff = newHeight - lastViewportHeight;
+    lastViewportHeight = newHeight;
+    // Keyboard dismissed (viewport grew) - scroll page down by same amount
+    if (diff > 50) {
+      window.scrollBy({ top: -diff, behavior: 'instant' });
     }
-  }, 300);
-}, true);
+  });
+} else {
+  // Fallback for browsers without visualViewport
+  document.addEventListener('focusout', e => {
+    const tag = e.target.tagName;
+    if (tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA') return;
+    setTimeout(() => {
+      const stickyHeader = document.querySelector('.sticky-header');
+      const headerH = stickyHeader ? stickyHeader.offsetHeight : 0;
+      const rect = e.target.getBoundingClientRect();
+      if (rect.top < headerH + 8) {
+        window.scrollBy({ top: rect.top - headerH - 16, behavior: 'smooth' });
+      }
+    }, 100);
+  }, true);
+}
 
 // ── Init ──
 updateStats(); updateTabCounts(); renderAll();
