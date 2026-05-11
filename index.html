@@ -116,7 +116,19 @@
   .col-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
   .item-row { display: grid; grid-template-columns: 1fr 150px 150px 1fr; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid var(--trip-border, var(--border)); }
   .item-row-top { display: none; }
-  .item-notes-mobile { display: none !important; }
+  .item-desktop-name { display: block; }
+  .item-notes-cell { display: block; }
+  .mobile-item-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 900; align-items: flex-end; justify-content: center; }
+  .mobile-item-modal.open { display: flex; }
+  .mobile-item-sheet { background: var(--bg); border-radius: var(--radius-lg) var(--radius-lg) 0 0; width: 100%; max-height: 85vh; overflow-y: auto; padding: 0 0 env(safe-area-inset-bottom,0); }
+  .mobile-item-sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; border-bottom: 1px solid var(--trip-border, var(--border)); }
+  .mobile-item-sheet-title { font-size: 15px; font-weight: 700; color: var(--trip-color, var(--text)); text-transform: uppercase; letter-spacing: 0.03em; }
+  .mobile-item-sheet-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-secondary); padding: 0 4px; line-height: 1; }
+  .mobile-item-field { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+  .mobile-item-field label { font-size: 11px; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 6px; }
+  .mobile-item-field input, .mobile-item-field select { width: 100%; font-size: 16px; border: 1px solid var(--border-secondary); border-radius: var(--radius-md); padding: 8px 10px; background: var(--bg); color: var(--text); font-family: inherit; }
+  .mobile-item-date-range { display: flex; align-items: center; gap: 8px; }
+  .mobile-item-date-range input { flex: 1; }
   .item-name { font-size: 16px; font-weight: 700; color: var(--trip-color, var(--text)); text-transform: uppercase; letter-spacing: 0.03em; }
   .item-date-lbl { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
   .item-details-lbl { font-size: 13px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -219,16 +231,17 @@
     .col-header { display: none; }
     .mobile-activities-label { display: block; font-size: 11px; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; background: var(--bg-secondary); border-top: 1px solid var(--trip-border, var(--border)); border-bottom: 1px solid var(--trip-border, var(--border)); padding: 7px 16px; }
     .item-row { grid-template-columns: 1fr; gap: 6px; }
-    .item-row-top { display: flex; align-items: center; gap: 8px; }
+    .item-row-top { display: flex; align-items: center; gap: 8px; cursor: pointer; }
     .item-row-top .item-name { flex: 1; min-width: 0; }
     .item-details-mobile { flex-shrink: 0; max-width: 45%; }
-    /* Hide desktop details/notes cells on mobile */
+    .item-desktop-name { display: none; }
+    /* Hide desktop details cell on mobile */
     .item-row > .details-wrap,
     .item-row > input.table-input,
-    .item-row > a,
-    .item-row > div.item-details-lbl { display: none; }
-    .item-notes-mobile { display: none; }
-    .item-notes-mobile.has-notes { display: block; font-size: 12px; color: var(--text-secondary); }
+    .item-row > a { display: none; }
+    /* Notes: hide on mobile unless has content */
+    .item-notes-cell { display: none; }
+    .item-notes-cell.has-notes { display: block; font-size: 12px; }
     .trip-fields-grid { grid-template-columns: 1fr; }
     .tab-nav { width: 100%; }
     .tab-btn { flex: 1; text-align: center; padding: 7px 8px; }
@@ -831,15 +844,24 @@ function tripHTML(ti) {
     <div class="trip-items">`;
     sortedItems.forEach(({item, ii}) => {
       h += `<div class="item-row">
-        <div class="item-row-top">
+        <!-- Desktop: name cell -->
+        <div class="item-desktop-name">
+          <div class="item-name">${esc(item.name)}</div>
+          ${formatItemDate(item)?`<div class="item-date-lbl">${esc(formatItemDate(item))}</div>`:''}
+        </div>
+        <!-- Mobile: name + details on one row, tappable -->
+        <div class="item-row-top" onclick="openMobileItemEdit(${ti},${ii})">
           <div style="flex:1;min-width:0"><div class="item-name">${esc(item.name)}</div>${formatItemDate(item)?`<div class="item-date-lbl">${esc(formatItemDate(item))}</div>`:''}</div>
           <div class="item-details-mobile">${detailsCell(item,ti,ii)}</div>
         </div>
+        <!-- Details (desktop only) -->
         ${detailsCell(item,ti,ii)}
+        <!-- Status -->
         <select class="status-select ${statusColorClass(item.status)}" onchange="onStatusChange(${ti},${ii},this.value);this.className='status-select '+statusColorClass(this.value)">
           ${STATUSES.map(s=>`<option value="${s}"${s===item.status?' selected':''}>${s}</option>`).join('')}
         </select>
-        <div class="item-notes-mobile${item.notes ? ' has-notes' : ''}">${notesCell(item,ti,ii)}</div>
+        <!-- Notes: always shown on desktop, only if has content on mobile -->
+        <div class="item-notes-cell${item.notes || item.details && detailsOptsFor(item.name) === null ? ' has-notes' : ''}">${notesCell(item,ti,ii)}</div>
       </div>`;
     });
     h += '</div>'; // close trip-items
@@ -1121,6 +1143,89 @@ function modalDetailsInputChange(inp, ii) {
 function closeDetailsDropdown(wrapId) {
   const dd = document.getElementById(wrapId + '-dd');
   if (dd) dd.remove();
+}
+
+// ── Mobile item edit sheet ──
+let _mobileEditTi = null, _mobileEditIi = null;
+
+function openMobileItemEdit(ti, ii) {
+  _mobileEditTi = ti; _mobileEditIi = ii;
+  const item = trips[ti].items[ii];
+  const theme = trips[ti]?.category ? CATEGORY_THEME[trips[ti].category] : null;
+
+  // Set header theme
+  const header = document.getElementById('mobileItemSheetHeader');
+  if (header) {
+    header.style.background = theme ? theme.bg : '';
+    header.style.borderBottomColor = theme ? theme.border : '';
+  }
+  document.getElementById('mobileItemTitle').textContent = item.name || 'Activity';
+  document.getElementById('mobileItemTitle').style.color = theme ? theme.text : '';
+
+  // Build fields
+  const opts = detailsOptsFor(item.name);
+  const detailsField = opts
+    ? `<select id="mif-details" onchange="mobileItemChange('details',this.value)">
+        <option value="">— select —</option>
+        ${opts.map(o=>`<option value="${o}"${o===item.details?' selected':''}>${o}</option>`).join('')}
+      </select>`
+    : `<input id="mif-details" value="${esc(item.details||'')}" placeholder="details…" oninput="mobileItemChange('details',this.value)">`;
+
+  document.getElementById('mobileItemFields').innerHTML = `
+    <div class="mobile-item-field">
+      <label>Details</label>${detailsField}
+    </div>
+    <div class="mobile-item-field">
+      <label>Status</label>
+      <select id="mif-status" class="${statusColorClass(item.status)}" onchange="mobileItemChange('status',this.value);this.className=statusColorClass(this.value)">
+        ${STATUSES.map(s=>`<option value="${s}"${s===item.status?' selected':''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="mobile-item-field">
+      <label>Start date</label>
+      <input id="mif-dateStart" type="date" value="${esc(item.dateStart||'')}" onchange="mobileItemChange('dateStart',this.value)">
+    </div>
+    <div class="mobile-item-field">
+      <label>End date</label>
+      <input id="mif-dateEnd" type="date" value="${esc(item.dateEnd||'')}" onchange="mobileItemChange('dateEnd',this.value)">
+    </div>
+    <div class="mobile-item-field">
+      <label>Notes</label>
+      <input id="mif-notes" value="${esc(item.notes||'')}" placeholder="notes…" oninput="mobileItemChange('notes',this.value)">
+    </div>`;
+
+  document.getElementById('mobileItemModal').classList.add('open');
+}
+
+function mobileItemChange(field, val) {
+  if (_mobileEditTi === null) return;
+  trips[_mobileEditTi].items[_mobileEditIi][field] = val;
+  // Update status color on select
+  if (field === 'status') {
+    TABS.forEach(tab => {
+      const el = document.querySelector(`#tripList-${tab} #tc-${_mobileEditTi}`);
+      if (el) el.outerHTML = tripHTML(_mobileEditTi);
+    });
+  }
+  persist();
+}
+
+function closeMobileItemModal() {
+  document.getElementById('mobileItemModal').classList.remove('open');
+  // Re-render to reflect any changes
+  if (_mobileEditTi !== null) {
+    updateStats(); updateTabCounts();
+    TABS.forEach(tab => {
+      const el = document.querySelector(`#tripList-${tab} #tc-${_mobileEditTi}`);
+      if (el) el.outerHTML = tripHTML(_mobileEditTi);
+    });
+    updateFade();
+  }
+  _mobileEditTi = null; _mobileEditIi = null;
+}
+
+function handleMobileItemModalClick(e) {
+  if (e.target === document.getElementById('mobileItemModal')) closeMobileItemModal();
 }
 
 function onDetailChange(ti, ii, val) {
@@ -1551,7 +1656,7 @@ Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, updat
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
   closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab,
   toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey,
-  refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell, notesCell, switchNotesToEdit, extractUrl, detailsInput, modalDetailsInputChange, addDetailsInput, closeDetailsDropdown, locationInput, selectLocation, closeLocationDropdown });
+  refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell, notesCell, switchNotesToEdit, extractUrl, detailsInput, modalDetailsInputChange, addDetailsInput, closeDetailsDropdown, locationInput, selectLocation, closeLocationDropdown, openMobileItemEdit, closeMobileItemModal, handleMobileItemModalClick, mobileItemChange });
 
 
 
@@ -1683,6 +1788,16 @@ const HARDCODED_CFG = {
 
 connect(HARDCODED_CFG);
 </script>
+<div class="mobile-item-modal" id="mobileItemModal" onclick="handleMobileItemModalClick(event)">
+  <div class="mobile-item-sheet" id="mobileItemSheet">
+    <div class="mobile-item-sheet-header" id="mobileItemSheetHeader">
+      <span class="mobile-item-sheet-title" id="mobileItemTitle"></span>
+      <button class="mobile-item-sheet-close" onclick="closeMobileItemModal()">&#215;</button>
+    </div>
+    <div id="mobileItemFields"></div>
+  </div>
+</div>
+
 <datalist id="req-presets">
   <option value="➡️ Inbound">
   <option value="⬅️ Outbound">
