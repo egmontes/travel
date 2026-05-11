@@ -1857,33 +1857,17 @@ document.addEventListener('wheel', function(e) {
   }
 }, { passive: false });
 
-// ── Scroll back when keyboard dismisses on mobile ──
-if (window.visualViewport) {
-  let lastViewportHeight = window.visualViewport.height;
-  window.visualViewport.addEventListener('resize', () => {
-    const newHeight = window.visualViewport.height;
-    const diff = newHeight - lastViewportHeight;
-    lastViewportHeight = newHeight;
-    // Keyboard dismissed (viewport grew) - scroll page down by same amount
-    if (diff > 50) {
-      window.scrollBy({ top: -diff, behavior: 'instant' });
-    }
-  });
-} else {
-  // Fallback for browsers without visualViewport
-  document.addEventListener('focusout', e => {
-    const tag = e.target.tagName;
-    if (tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA') return;
-    setTimeout(() => {
-      const stickyHeader = document.querySelector('.sticky-header');
-      const headerH = stickyHeader ? stickyHeader.offsetHeight : 0;
-      const rect = e.target.getBoundingClientRect();
-      if (rect.top < headerH + 8) {
-        window.scrollBy({ top: rect.top - headerH - 16, behavior: 'smooth' });
-      }
-    }, 100);
-  }, true);
-}
+// ── Scroll back if element is hidden behind sticky header after keyboard dismisses ──
+document.addEventListener('focusout', e => {
+  const tag = e.target.tagName;
+  if (tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA') return;
+  const stickyHeader = document.querySelector('.sticky-header');
+  const headerH = stickyHeader ? stickyHeader.offsetHeight : 0;
+  const rect = e.target.getBoundingClientRect();
+  if (rect.top < headerH + 8) {
+    window.scrollBy({ top: rect.top - headerH - 16, behavior: 'smooth' });
+  }
+}, true);
 
 // ── Init ──
 updateStats(); updateTabCounts(); renderAll();
