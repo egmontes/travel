@@ -1857,6 +1857,23 @@ document.addEventListener('wheel', function(e) {
   }
 }, { passive: false });
 
+// ── Scroll back after keyboard dismisses on mobile ──
+document.addEventListener('focusout', e => {
+  const tag = e.target.tagName;
+  if (tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA') return;
+  // Small delay to let keyboard animate down first
+  setTimeout(() => {
+    // Scroll the element back into view below the sticky header
+    const stickyHeader = document.querySelector('.sticky-header');
+    const headerH = stickyHeader ? stickyHeader.offsetHeight : 0;
+    const el = e.target;
+    const rect = el.getBoundingClientRect();
+    if (rect.top < headerH + 8) {
+      window.scrollBy({ top: rect.top - headerH - 16, behavior: 'smooth' });
+    }
+  }, 300);
+}, true);
+
 // ── Init ──
 updateStats(); updateTabCounts(); renderAll();
 setTimeout(() => window.attachSheetListeners?.(), 200);
