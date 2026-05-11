@@ -112,7 +112,8 @@
   .btn-danger { color: var(--danger-text); }
   .btn-danger:hover { background: var(--danger-bg); }
 
-  .chevron { font-size: 11px; color: var(--text-tertiary); margin-left: 2px; transition: transform 0.2s; display: inline-block; }
+  .chevron { font-size: 14px; color: var(--border-secondary); transition: transform 0.2s; display: inline-block; line-height: 1; }
+  .trip-chevron-bar { text-align: center; padding: 0; margin-top: 4px; line-height: 1; opacity: 0.4; }
   .trip-items { max-height: 40vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .col-header { display: grid; grid-template-columns: 1fr 150px 150px 1fr; gap: 10px; padding: 7px 16px; background: var(--bg-secondary); border-top: 1px solid var(--trip-border, var(--border)); border-bottom: 1px solid var(--trip-border, var(--border)); }
   .col-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
@@ -866,10 +867,11 @@ function tripHTML(ti) {
             <div class="progress-bar"><div class="progress-fill" id="pf-${ti}" style="width:${pct}%;background:${st.color}"></div></div>
             <span class="progress-text" id="pt-${ti}">${done}/${total}</span>
           </div>
-          <span class="chevron" style="${open?'transform:rotate(180deg)':''}">&#9660;</span>
+
         </div>
       </div>
       ${trip.link ? `<div style="padding:4px 0 2px"><a href="${esc(trip.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="trip-link-label">🔗 ${esc(trip.linkText || trip.link)}</a></div>` : ''}
+      <div class="trip-chevron-bar"><span class="chevron" style="${open?'transform:rotate(180deg)':''}">&#8964;</span></div>
     </div>`;
   if (open) {
     // Sort items by dateStart, undated items go last
