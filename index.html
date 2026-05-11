@@ -42,6 +42,10 @@
   .header-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
   .sync-bar { display: flex; align-items: center; gap: 5px; }
+  @media (max-width: 600px) {
+    .sync-bar { position: fixed; top: 6px; right: 10px; z-index: 200; background: transparent; }
+    .sync-bar span { display: none; } /* hide text, just show dot on mobile */
+  }
   .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-tertiary); flex-shrink: 0; transition: background 0.3s; }
   .sync-dot.connected { background: var(--green-text); }
   .sync-dot.syncing { background: var(--amber-text); }
