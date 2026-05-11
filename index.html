@@ -39,7 +39,8 @@
   .page-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 1.75rem; }
   h1 { font-size: 32px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
   .page-sub { font-size: 14px; color: var(--text-secondary); margin-top: 3px; }
-  .header-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .header-actions { display: flex; gap: 4px; flex-wrap: nowrap; align-items: center; }
+  .action-btn { padding: 5px 10px !important; font-size: 16px !important; min-width: 0; }
 
   .sync-bar { display: flex; align-items: center; gap: 5px; }
   @media (max-width: 600px) {
@@ -209,6 +210,11 @@
     .status-pill.notstarted{ background: #450a0a; color: #fca5a5; }
   }
 
+  /* Map loading spinner */
+  .map-loading { display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;color:var(--text-secondary);font-size:14px; }
+  .map-spinner { width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--text-secondary);border-radius:50%;animation:spin 0.8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
   /* Calendar */
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
   .cal-day-label { font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-align: center; padding: 4px 0; text-transform: uppercase; }
@@ -280,10 +286,10 @@
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
       <div class="header-actions">
-        <button class="btn" onclick="expandAll()">Expand all</button>
-        <button class="btn" onclick="collapseAll()">Collapse all</button>
-        <button class="btn" onclick="openCalendar()">📅 Calendar</button>
-        <button class="btn" onclick="openMapModal()">🗺 Map</button>
+        <button class="btn action-btn" onclick="expandAll()">⊞</button>
+        <button class="btn action-btn" onclick="collapseAll()">⊟</button>
+        <button class="btn action-btn" onclick="openCalendar()">📅</button>
+        <button class="btn action-btn" onclick="openMapModal()">🗺</button>
       </div>
       <div class="sync-bar" style="margin:0;min-height:auto">
         <div class="sync-dot" id="syncDot"></div>
@@ -1889,6 +1895,8 @@ async function openMapModal() {
   document.getElementById('mapModal').classList.add('open');
   const container = document.getElementById('mapContainer');
   if (!container) return;
+  // Show loading spinner immediately
+  container.innerHTML = '<div class="map-loading"><div class="map-spinner"></div><span>Loading map…</span></div>';
 
   // Collect trips with geocoded locations
   const toGeocode = trips.filter(t => t.location && !t._latlng);
