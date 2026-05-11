@@ -853,8 +853,8 @@ function tripHTML(ti) {
           ${formatItemDate(item)?`<div class="item-date-lbl">${esc(formatItemDate(item))}</div>`:''}
         </div>
         <!-- Mobile: name + details on one row, tappable -->
-        <div class="item-row-top" onclick="openMobileItemEdit(${ti},${ii})">
-          <div style="flex:1;min-width:0"><div class="item-name">${esc(item.name)}</div>${formatItemDate(item)?`<div class="item-date-lbl">${esc(formatItemDate(item))}</div>`:''}</div>
+        <div class="item-row-top">
+          <div style="flex:1;min-width:0;cursor:pointer" onclick="openMobileItemEdit(${ti},${ii})"><div class="item-name">${esc(item.name)}</div>${formatItemDate(item)?`<div class="item-date-lbl">${esc(formatItemDate(item))}</div>`:''}</div>
           <div class="item-details-mobile">${detailsCell(item,ti,ii)}</div>
         </div>
         <!-- Details (desktop only) -->
