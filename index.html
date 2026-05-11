@@ -1199,7 +1199,8 @@ function openMobileItemEdit(ti, ii) {
     </div>`;
 
   document.getElementById('mobileItemModal').classList.add('open');
-  setTimeout(() => window.attachSheetListeners?.(), 30);
+  window.attachSheetListeners?.();
+  setTimeout(() => window.attachSheetListeners?.(), 100);
 }
 
 function mobileItemChange(field, val) {
@@ -1267,11 +1268,15 @@ function mobileItemChange(field, val) {
   document.addEventListener('DOMContentLoaded', () => {}, false);
   // Use a MutationObserver to attach when elements exist
   function attachSheetListeners() {
+    // Re-attach every time (elements may be recreated)
     const handle = document.getElementById('mobileSheetHandle');
     const header = document.getElementById('mobileItemSheetHeader');
     [handle, header].forEach(el => {
-      if (!el || el._sheetListenerAttached) return;
-      el._sheetListenerAttached = true;
+      if (!el) return;
+      // Remove old listeners first to avoid duplicates
+      el.removeEventListener('touchstart', onSheetTouchStart);
+      el.removeEventListener('touchmove', onSheetTouchMove);
+      el.removeEventListener('touchend', onSheetTouchEnd);
       el.addEventListener('touchstart', onSheetTouchStart, { passive: true });
       el.addEventListener('touchmove', onSheetTouchMove, { passive: true });
       el.addEventListener('touchend', onSheetTouchEnd, { passive: true });
@@ -1854,6 +1859,7 @@ document.addEventListener('wheel', function(e) {
 
 // ── Init ──
 updateStats(); updateTabCounts(); renderAll();
+setTimeout(() => window.attachSheetListeners?.(), 200);
 
 const HARDCODED_CFG = {
   apiKey: "AIzaSyC0hkoFdLexSXgU7GjJb_w9v4m39Jzxa34",
