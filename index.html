@@ -1696,15 +1696,14 @@ function collapseAll() { expanded={}; renderAll(); updateFade(); }
 
   document.addEventListener('touchstart', e => {
     if (e.touches.length !== 1) return;
+    // Only activate swipe if touch starts in the slider area, not on sticky header
+    const stickyHeader = document.querySelector('.sticky-header');
+    if (stickyHeader && stickyHeader.contains(e.target)) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     isDragging = false;
     isHoriz = null;
     dragOffset = 0;
-    const track = getTrack();
-    if (track) track.classList.add('dragging');
-    // Show all panels during drag
-    TABS.forEach(t => { const p = document.getElementById('panel-' + t); if (p) p.classList.remove('inactive'); });
   }, { passive: true });
 
   document.addEventListener('touchmove', e => {
@@ -1719,6 +1718,12 @@ function collapseAll() { expanded={}; renderAll(); updateFade(); }
 
     if (!isHoriz) return;
 
+    // Only now activate dragging state (show panels, add dragging class)
+    if (!isDragging) {
+      const track = getTrack();
+      if (track) track.classList.add('dragging');
+      TABS.forEach(t => { const p = document.getElementById('panel-' + t); if (p) p.classList.remove('inactive'); });
+    }
     isDragging = true;
     const cur = SWIPE_TABS.indexOf(activeTab);
 
