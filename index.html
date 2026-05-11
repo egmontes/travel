@@ -834,12 +834,12 @@ function countdownStr(trip) {
 }
 
 const CATEGORY_THEME = {
-  'Wedding':  { emoji: '💍', bg: 'rgba(212,83,126,0.08)',  border: 'rgba(212,83,126,0.25)', text: '#99355a' },
-  'Vacation': { emoji: '🌴', bg: 'rgba(29,158,117,0.08)',  border: 'rgba(29,158,117,0.25)', text: '#0f6e56' },
-  'Holiday':  { emoji: '🎄', bg: 'rgba(99,153,34,0.08)',   border: 'rgba(99,153,34,0.25)',  text: '#3b6d11' },
-  'Work':     { emoji: '💼', bg: 'rgba(55,138,221,0.08)',  border: 'rgba(55,138,221,0.25)', text: '#185fa5' },
-  'Party':    { emoji: '🎉', bg: 'rgba(186,117,23,0.08)',  border: 'rgba(186,117,23,0.25)', text: '#854f0b' },
-  'Other':    { emoji: '📌', bg: 'rgba(95,94,90,0.08)',    border: 'rgba(95,94,90,0.2)',    text: '#5f5e5a' },
+  'Wedding':  { emoji: '💍', bg: 'rgba(212,83,126,0.08)',  border: 'rgba(212,83,126,0.25)', text: '#99355a', color: '#e0527a' },
+  'Vacation': { emoji: '🌴', bg: 'rgba(29,158,117,0.08)',  border: 'rgba(29,158,117,0.25)', text: '#0f6e56', color: '#1dab82' },
+  'Holiday':  { emoji: '🎄', bg: 'rgba(99,153,34,0.08)',   border: 'rgba(99,153,34,0.25)',  text: '#3b6d11', color: '#6aaa1a' },
+  'Work':     { emoji: '💼', bg: 'rgba(55,138,221,0.08)',  border: 'rgba(55,138,221,0.25)', text: '#185fa5', color: '#3b8ae0' },
+  'Party':    { emoji: '🎉', bg: 'rgba(186,117,23,0.08)',  border: 'rgba(186,117,23,0.25)', text: '#854f0b', color: '#e09020' },
+  'Other':    { emoji: '📌', bg: 'rgba(95,94,90,0.08)',    border: 'rgba(95,94,90,0.2)',    text: '#5f5e5a', color: '#7a7977' },
 };
 
 function tripHTML(ti) {
@@ -1874,6 +1874,7 @@ function openCalendar() {
   calMonth = TODAY.getMonth();
   renderCal();
   document.getElementById('calendarModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
 function calShift(dir) {
@@ -1898,8 +1899,7 @@ function renderCal() {
   let colorIdx = 0;
   const tripMeta = trips.map((trip, ti) => {
     const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
-    // Extract solid color from theme border rgba for visible calendar bars
-    const color = theme ? (()=>{ const m=theme.border.match(/rgba\((\d+),(\d+),(\d+)/); return m?`rgb(${m[1]},${m[2]},${m[3]})`:theme.text; })() : TRIP_COLORS_CAL[colorIdx++ % TRIP_COLORS_CAL.length];
+    const color = theme ? theme.color : '#9e9d9b';
     const textColor = color;
     // Collect all dates: trip date + all activity start/end dates
     const tripDate = parseDateStr(trip.startDate || trip.date);
@@ -1965,7 +1965,9 @@ function renderCal() {
       const labelStyle = showLabel
         ? `position:absolute;left:4px;top:0;right:0;pointer-events:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:calc(${cellsInSpan * 100}% + ${(cellsInSpan-1) * 1}px - 4px);z-index:3;line-height:22px;`
         : 'display:none';
-      const labelEl = `<span style="${labelStyle}">${showLabel ? esc(trip.name) : ''}</span>`;
+      const evTheme = trip.category ? CATEGORY_THEME[trip.category] : null;
+      const emoji = evTheme ? evTheme.emoji : '📌';
+      const labelEl = `<span style="${labelStyle}">${showLabel ? emoji + ' ' + esc(trip.name) : ''}</span>`;
       return `<div class="cal-event" style="background:${color};color:${txtColor};border-radius:${borderRadius};margin:0 ${mr} 2px ${ml};position:relative;overflow:visible" title="${esc(trip.name)}" onclick="event.stopPropagation();openCalPopup(${tripIdx})">${labelEl}</div>`;
     }).join('');
     if (events.length > 3) evHtml += `<div style="font-size:9px;color:var(--text-tertiary)">+${events.length-3}</div>`;
@@ -1979,8 +1981,21 @@ function renderCal() {
   document.getElementById('calGrid').innerHTML = html;
 
   // Legend - only trips visible this month
-  document.getElementById('calLegend').innerHTML = visible.map(({trip, color}) =>
-    `<div class="cal-legend-item"><div class="cal-legend-dot" style="background:${color}"></div>${esc(trip.name)}</div>`
+  // Build unique category legend
+  const seenCats = new Set();
+  const legendItems = [];
+  visible.forEach(({trip, color}) => {
+    const cat = trip.category || 'TBD';
+    const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
+    const emoji = theme ? theme.emoji : '📌';
+    const key = cat;
+    if (!seenCats.has(key)) {
+      seenCats.add(key);
+      legendItems.push({color, emoji, cat});
+    }
+  });
+  document.getElementById('calLegend').innerHTML = legendItems.map(({color, emoji, cat}) =>
+    `<div class="cal-legend-item"><div class="cal-legend-dot" style="background:${color}"></div>${emoji} ${esc(cat)}</div>`
   ).join('');
 }
 
@@ -1990,6 +2005,7 @@ let _map = null;
 
 async function openMapModal() {
   document.getElementById('mapModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
   const container = document.getElementById('mapContainer');
   if (!container) return;
   // Show loading spinner immediately
@@ -2035,7 +2051,7 @@ async function openMapModal() {
   const bounds = L.latLngBounds();
   pinned.forEach(trip => {
     const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
-    const color = theme ? theme.text : '#5f5e5a';
+    const color = theme ? theme.color : '#9e9d9b';
     const display = locationDisplayStr(trip) || trip.name;
 
     const icon = L.divIcon({
@@ -2254,7 +2270,7 @@ const HARDCODED_CFG = {
 connect(HARDCODED_CFG);
 </script>
 <!-- Map Modal -->
-<div class="modal-backdrop" id="mapModal" onclick="handleBackdropClick(event,'mapModal')">
+<div class="modal-backdrop" id="mapModal" onclick="handleBackdropClick(event,'mapModal')" ontouchstart="event.stopPropagation()" ontouchmove="event.stopPropagation()" ontouchend="event.stopPropagation()">
   <div class="modal" style="max-width:800px;width:95vw">
     <div class="modal-header">
       <span class="modal-title">🗺 Trip Map</span>
@@ -2303,7 +2319,7 @@ connect(HARDCODED_CFG);
 </div>
 
 <!-- Calendar Modal -->
-<div class="modal-backdrop" id="calendarModal" onclick="handleBackdropClick(event,'calendarModal')">
+<div class="modal-backdrop" id="calendarModal" onclick="handleBackdropClick(event,'calendarModal')" ontouchstart="event.stopPropagation()" ontouchmove="event.stopPropagation()" ontouchend="event.stopPropagation()">
   <div class="modal" style="max-width:700px">
     <div class="modal-header">
       <div style="display:flex;align-items:center;gap:12px">
