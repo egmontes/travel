@@ -851,9 +851,9 @@ function tripHTML(ti) {
           ? `border: 2px solid ${theme.border}; --trip-border: ${theme.border}; --trip-color: ${theme.text}; --trip-bg: ${theme.bg}`
           : '')
   }">
-    <div class="category-banner" style="background:${theme ? theme.bg : 'var(--bg-secondary)'};border-bottom:1px solid ${theme ? theme.border : 'var(--border)'};display:flex;align-items:center;justify-content:space-between;padding:6px 12px 6px 16px">
+    <div class="category-banner" style="background:${theme ? theme.bg : 'var(--bg-secondary)'};border-bottom:1px solid ${theme ? theme.border : 'var(--border)'};display:flex;align-items:center;justify-content:space-between;padding:6px 12px 6px 16px;position:relative">
       <span class="category-banner-text" style="color:${theme ? theme.text : 'var(--text-tertiary)'}">${theme ? `${theme.emoji} ${esc(trip.category)}` : '📌 TBD'}</span>
-      ${(()=>{ const cd=countdownStr(trip); return cd ? `<span class="trip-countdown ${cd.cls}">${cd.text}</span>` : ''; })()}
+      ${(()=>{ const cd=countdownStr(trip); return cd ? `<span class="trip-countdown ${cd.cls}" style="position:absolute;left:50%;transform:translateX(-50%)">${cd.text}</span>` : ''; })()}
       <button class="btn btn-sm" onclick="openEdit(event,${ti})" style="font-size:11px;padding:3px 8px">Edit</button>
     </div>
     <div class="trip-header" onclick="handleHeaderClick(event,${ti})" style="${open && theme ? `background:${theme.bg}` : ''}">
