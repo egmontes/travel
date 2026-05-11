@@ -115,6 +115,8 @@
   .col-header { display: grid; grid-template-columns: 1fr 150px 150px 1fr; gap: 10px; padding: 7px 16px; background: var(--bg-secondary); border-top: 1px solid var(--trip-border, var(--border)); border-bottom: 1px solid var(--trip-border, var(--border)); }
   .col-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
   .item-row { display: grid; grid-template-columns: 1fr 150px 150px 1fr; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid var(--trip-border, var(--border)); }
+  .item-row-top { display: none; }
+  .item-notes-mobile { display: none !important; }
   .item-name { font-size: 16px; font-weight: 700; color: var(--trip-color, var(--text)); text-transform: uppercase; letter-spacing: 0.03em; }
   .item-date-lbl { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
   .item-details-lbl { font-size: 13px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -216,7 +218,17 @@
   @media (max-width: 600px) {
     .col-header { display: none; }
     .mobile-activities-label { display: block; font-size: 11px; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; background: var(--bg-secondary); border-top: 1px solid var(--trip-border, var(--border)); border-bottom: 1px solid var(--trip-border, var(--border)); padding: 7px 16px; }
-    .item-row { grid-template-columns: 1fr; }
+    .item-row { grid-template-columns: 1fr; gap: 6px; }
+    .item-row-top { display: flex; align-items: center; gap: 8px; }
+    .item-row-top .item-name { flex: 1; min-width: 0; }
+    .item-details-mobile { flex-shrink: 0; max-width: 45%; }
+    /* Hide desktop details/notes cells on mobile */
+    .item-row > .details-wrap,
+    .item-row > input.table-input,
+    .item-row > a,
+    .item-row > div.item-details-lbl { display: none; }
+    .item-notes-mobile { display: none; }
+    .item-notes-mobile.has-notes { display: block; font-size: 12px; color: var(--text-secondary); }
     .trip-fields-grid { grid-template-columns: 1fr; }
     .tab-nav { width: 100%; }
     .tab-btn { flex: 1; text-align: center; padding: 7px 8px; }
@@ -819,12 +831,15 @@ function tripHTML(ti) {
     <div class="trip-items">`;
     sortedItems.forEach(({item, ii}) => {
       h += `<div class="item-row">
-        <div><div class="item-name">${esc(item.name)}</div>${formatItemDate(item)?`<div class="item-date-lbl">${esc(formatItemDate(item))}</div>`:''}</div>
+        <div class="item-row-top">
+          <div style="flex:1;min-width:0"><div class="item-name">${esc(item.name)}</div>${formatItemDate(item)?`<div class="item-date-lbl">${esc(formatItemDate(item))}</div>`:''}</div>
+          <div class="item-details-mobile">${detailsCell(item,ti,ii)}</div>
+        </div>
         ${detailsCell(item,ti,ii)}
         <select class="status-select ${statusColorClass(item.status)}" onchange="onStatusChange(${ti},${ii},this.value);this.className='status-select '+statusColorClass(this.value)">
           ${STATUSES.map(s=>`<option value="${s}"${s===item.status?' selected':''}>${s}</option>`).join('')}
         </select>
-        ${notesCell(item,ti,ii)}
+        <div class="item-notes-mobile${item.notes ? ' has-notes' : ''}">${notesCell(item,ti,ii)}</div>
       </div>`;
     });
     h += '</div>'; // close trip-items
