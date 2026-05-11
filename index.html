@@ -786,7 +786,7 @@ function tripHTML(ti) {
       <div class="trip-header-bottom">
         <div class="trip-meta-row">
           ${displayDate ? `<span class="trip-date-label">${displayDate}</span>` : ''}
-          ${trip.location ? `<span class="trip-location-label" style="margin-top:0">&#128205; ${esc(trip.location)}</span>` : ''}
+          ${trip.location ? `<span class="trip-location-label" style="margin-top:0">&#128205; ${esc(locationDisplayStr(trip))}</span>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
           <div class="progress-wrap">
@@ -988,20 +988,20 @@ async function fetchLocations(query) {
     const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
     const data = await res.json();
     if (!data.length) { dd.innerHTML = '<div class="location-searching">No results found</div>'; return; }
-    dd.innerHTML = data.map(place => {
+    dd.innerHTML = '';
+    data.forEach(place => {
       const addr = place.address || {};
       const city = addr.city || addr.town || addr.village || addr.municipality || '';
       const state = addr.state || addr.region || '';
       const country = addr.country || '';
       const displayLabel = city || state || country || 'TBD';
-      const sub = [city ? state : '', country].filter(Boolean).join(', ');
-      // Store full address but show short label in dropdown
       const fullAddr = place.display_name;
-      return `<div class="location-opt" onmousedown="selectLocation('${fullAddr.replace(/'/g,"\\'")}','${displayLabel.replace(/'/g,"\\'")}')">
-        <div class="location-opt-main">${esc(displayLabel)}</div>
-        <div class="location-opt-sub">${esc(fullAddr)}</div>
-      </div>`;
-    }).join('');
+      const div = document.createElement('div');
+      div.className = 'location-opt';
+      div.innerHTML = `<div class="location-opt-main">${esc(displayLabel)}</div><div class="location-opt-sub">${esc(fullAddr)}</div>`;
+      div.addEventListener('mousedown', (e) => { e.preventDefault(); selectLocation(fullAddr, displayLabel); });
+      dd.appendChild(div);
+    });
   } catch(e) {
     if (dd) dd.innerHTML = '<div class="location-searching">Search unavailable</div>';
   }
@@ -1009,12 +1009,12 @@ async function fetchLocations(query) {
 
 function selectLocation(fullAddr, displayLabel) {
   const inp = document.getElementById('loc-input');
-  // Store full address in the input and draft
   if (inp) inp.value = fullAddr;
   if (window._editDraft) {
     window._editDraft.location = fullAddr;
     window._editDraft.locationDisplay = displayLabel || fullAddr;
   }
+  console.log('selectLocation called:', {fullAddr, displayLabel, stored: window._editDraft?.locationDisplay});
   closeLocationDropdown();
 }
 
@@ -1439,10 +1439,10 @@ function removeItem(ii) { window._editDraft.items.splice(ii,1); renderTripBody()
 
 async function saveTrip() {
   if (!window._editDraft.name.trim()) { showToast('Please enter a trip name'); return; }
-  // Sync legacy date field from startDate for backward compat
   if (window._editDraft.startDate) {
     window._editDraft.month = monthFromDate(window._editDraft.startDate);
   }
+  console.log('saveTrip - locationDisplay:', window._editDraft.locationDisplay, 'location:', window._editDraft.location?.slice(0,40));
   if (editingIdx===null) trips.push(JSON.parse(JSON.stringify(window._editDraft)));
   else trips[editingIdx] = JSON.parse(JSON.stringify(window._editDraft));
   closeModal('tripModal');
