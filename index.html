@@ -116,6 +116,8 @@
   .trip-chevron-bar { text-align: center; padding: 0; margin-top: 4px; line-height: 1; opacity: 0.4; }
   .trip-items-wrap { position: relative; display: block; }
   .trip-items-wrap::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 44px; background: linear-gradient(to bottom, transparent, var(--bg)); pointer-events: none; transition: opacity 0.2s; z-index: 2; }
+  .trip-items-wrap::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 32px; background: linear-gradient(to top, transparent, var(--bg)); pointer-events: none; transition: opacity 0.2s; z-index: 2; opacity: 0; }
+  .trip-items-wrap:not(.at-top)::before { opacity: 1; }
   .trip-items-wrap.at-bottom::after { opacity: 0; }
   .trip-items { max-height: 40vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .col-header { display: grid; grid-template-columns: 1fr 150px 150px 1fr; gap: 10px; padding: 7px 16px; background: var(--bg-secondary); border-top: 1px solid var(--trip-border, var(--border)); border-bottom: 1px solid var(--trip-border, var(--border)); }
@@ -1070,6 +1072,16 @@ function handleHeaderClick(e,ti) {
     if (el) el.outerHTML = tripHTML(ti);
   });
   updateFade();
+  // Init fade state for newly opened trip
+  if (expanded[ti]) {
+    setTimeout(() => {
+      const wrap = document.getElementById('tiw-' + ti);
+      if (wrap) {
+        const items = wrap.querySelector('.trip-items');
+        if (items) updateTripItemsFade(items);
+      }
+    }, 50);
+  }
 }
 
 // ── Location autocomplete via OpenStreetMap Nominatim ──
@@ -1358,7 +1370,9 @@ function updateTripItemsFade(el) {
   const wrap = el.closest('.trip-items-wrap');
   if (!wrap) return;
   const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
+  const atTop = el.scrollTop <= 4;
   wrap.classList.toggle('at-bottom', atBottom);
+  wrap.classList.toggle('at-top', atTop);
 }
 
 function onDetailChange(ti, ii, val) {
