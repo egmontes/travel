@@ -85,7 +85,7 @@
   .trip-countdown.very-soon { color: var(--danger-text, #a32d2d); }
   .trip-countdown.past { color: var(--text-tertiary); font-style: italic; }
   .category-banner-text { font-size: 12px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
-  .add-req-row { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--trip-border, var(--border)); background: var(--bg-secondary); }
+  .add-req-row { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--trip-border, var(--border)); background: var(--trip-bg, var(--bg-secondary)); }
   .add-req-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .add-req-fields.three { grid-template-columns: 1fr 1fr 1fr; }
   .add-req-actions { display: flex; gap: 8px; justify-content: flex-end; }
@@ -94,8 +94,8 @@
   .add-req-input:focus { outline: none; border-color: var(--text-secondary); }
   .add-req-btn { font-size: 12px; padding: 5px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-secondary); background: transparent; color: var(--text-secondary); cursor: pointer; font-family: inherit; white-space: nowrap; }
   .add-req-btn:hover { background: var(--bg); color: var(--text); }
-  .add-req-trigger { display: flex; align-items: center; gap: 6px; padding: 9px 16px; border-top: 1px solid var(--trip-border, var(--border)); color: var(--text-tertiary); font-size: 13px; cursor: pointer; transition: background 0.15s; }
-  .add-req-trigger:hover { background: var(--bg-secondary); color: var(--text-secondary); }
+  .add-req-trigger { display: flex; align-items: center; gap: 6px; padding: 9px 16px; border-top: 1px solid var(--trip-border, var(--border)); color: var(--trip-color, var(--text-tertiary)); font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s; background: var(--trip-bg, transparent); }
+  .add-req-trigger:hover { filter: brightness(0.95); }
   .progress-wrap { display: flex; align-items: center; gap: 8px; }
   .progress-bar { width: 56px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
   .progress-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
@@ -770,10 +770,10 @@ function tripHTML(ti) {
   let h = `<div class="trip-card${past?' past-trip':''}" id="tc-${ti}" style="${
     open
       ? (theme
-          ? `border: 3px solid ${theme.border}; --trip-border: ${theme.border}; --trip-color: ${theme.text}`
+          ? `border: 3px solid ${theme.border}; --trip-border: ${theme.border}; --trip-color: ${theme.text}; --trip-bg: ${theme.bg}`
           : `border: 3px solid var(--border-secondary)`)
       : (theme
-          ? `border: 2px solid ${theme.border}; --trip-border: ${theme.border}; --trip-color: ${theme.text}`
+          ? `border: 2px solid ${theme.border}; --trip-border: ${theme.border}; --trip-color: ${theme.text}; --trip-bg: ${theme.bg}`
           : '')
   }">
     <div class="category-banner" style="background:${theme ? theme.bg : 'var(--bg-secondary)'};border-bottom:1px solid ${theme ? theme.border : 'var(--border)'};display:flex;align-items:center;justify-content:space-between;padding:6px 12px 6px 16px">
@@ -831,38 +831,53 @@ function tripHTML(ti) {
       <span style="font-size:16px;line-height:1">+</span> Add item
     </div>
     <div class="add-req-row" id="add-req-row-${ti}" style="display:none">
-      <div class="add-req-fields three">
-        <div style="display:flex;flex-direction:column;gap:4px">
-          <select class="add-req-input" id="add-req-input-${ti}" onchange="handleAddItemType(${ti},this.value)">
-            <option value="">— select activity —</option>
-            <option value="➡️ Inbound">➡️ Inbound</option>
-            <option value="⬅️ Outbound">⬅️ Outbound</option>
-            <option value="🏨 Stay">🏨 Stay</option>
-            <option value="🎁 Gift">🎁 Gift</option>
-            <option value="🎟️ Tickets">🎟️ Tickets</option>
-            <option value="📋 Registration">📋 Registration</option>
-            <option value="🎿 Equipment">🎿 Equipment</option>
-            <option value="custom">✏️ Custom…</option>
-          </select>
-          <input class="add-req-input" id="add-req-custom-${ti}" placeholder="Custom item name" style="display:none" oninput="refreshAddItemDetails(${ti},this.value)">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:8px">
+          <div style="flex:1;min-width:0">
+            <div class="add-req-section">Activity</div>
+            <select class="add-req-input" id="add-req-input-${ti}" onchange="handleAddItemType(${ti},this.value)" style="width:100%">
+              <option value="">— select —</option>
+              <option value="➡️ Inbound">➡️ Inbound</option>
+              <option value="⬅️ Outbound">⬅️ Outbound</option>
+              <option value="🏨 Stay">🏨 Stay</option>
+              <option value="🎁 Gift">🎁 Gift</option>
+              <option value="🎟️ Tickets">🎟️ Tickets</option>
+              <option value="📋 Registration">📋 Registration</option>
+              <option value="🎿 Equipment">🎿 Equipment</option>
+              <option value="custom">✏️ Custom…</option>
+            </select>
+            <input class="add-req-input" id="add-req-custom-${ti}" placeholder="Custom activity name" style="display:none;width:100%;margin-top:4px" oninput="refreshAddItemDetails(${ti},this.value)">
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="add-req-section">Details</div>
+            <div class="details-wrap" id="add-dw-${ti}" style="width:100%">
+              <input class="add-req-input" id="add-req-details-${ti}" placeholder="details…" style="width:100%"
+                data-opts="[]" onfocus="addDetailsInput(${ti},this)"
+                oninput="addDetailsInput(${ti},this)"
+                onblur="setTimeout(()=>closeDetailsDropdown('add-dw-${ti}'),150)">
+            </div>
+          </div>
         </div>
-        <div class="details-wrap" id="add-dw-${ti}">
-          <input class="add-req-input" id="add-req-details-${ti}" placeholder="details…"
-            data-opts="[]" onfocus="addDetailsInput(${ti},this)"
-            oninput="addDetailsInput(${ti},this)"
-            onblur="setTimeout(()=>closeDetailsDropdown('add-dw-${ti}'),150)">
+        <div style="display:flex;gap:8px">
+          <div style="flex:1;min-width:0">
+            <div class="add-req-section">Status</div>
+            <select class="add-req-input" id="add-req-status-${ti}" style="width:100%">
+              ${STATUSES.map(s => `<option value="${s}"${s==='Not Booked'?' selected':''}>${s}</option>`).join('')}
+            </select>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="add-req-section">Notes</div>
+            <input class="add-req-input" id="add-req-notes-${ti}" placeholder="Notes" style="width:100%">
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <input class="add-req-input" type="date" id="add-req-date-${ti}" title="Start date" style="flex:1">
-          <span style="font-size:11px;color:var(--text-tertiary)">–</span>
-          <input class="add-req-input" type="date" id="add-req-date-end-${ti}" title="End date" style="flex:1">
+        <div>
+          <div class="add-req-section">Date</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input class="add-req-input" type="date" id="add-req-date-${ti}" style="flex:1;min-width:0">
+            <span style="font-size:11px;color:var(--text-tertiary);flex-shrink:0">to</span>
+            <input class="add-req-input" type="date" id="add-req-date-end-${ti}" style="flex:1;min-width:0">
+          </div>
         </div>
-      </div>
-      <div class="add-req-fields">
-        <select class="add-req-input" id="add-req-status-${ti}">
-          ${STATUSES.map(s => `<option value="${s}"${s==='Not Booked'?' selected':''}>${s}</option>`).join('')}
-        </select>
-        <input class="add-req-input" id="add-req-notes-${ti}" placeholder="Notes">
       </div>
       <div class="add-req-actions">
         <button class="add-req-btn" onclick="cancelAddReq(${ti})">Cancel</button>
@@ -1409,6 +1424,11 @@ function toggleAddReq(e, ti) {
     if (statusSel) statusSel.value = 'Not Booked';
     const notesInp = document.getElementById('add-req-notes-' + ti);
     if (notesInp) notesInp.value = '';
+    // Scroll the form into view after a short delay to let it render
+    setTimeout(() => {
+      const rowEl = document.getElementById('add-req-row-' + ti);
+      if (rowEl) rowEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
   }
 }
 
