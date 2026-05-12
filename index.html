@@ -1818,7 +1818,13 @@ async function saveSettings() {
 }
 
 // ── Utilities ──
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  // Restore scroll if no other modals are open
+  if (!document.querySelector('.modal-backdrop.open')) {
+    document.body.style.overflow = '';
+  }
+}
 function handleBackdropClick(e,id) { if (e.target===document.getElementById(id)) closeModal(id); }
 
 function exportCSV() {
@@ -1973,20 +1979,44 @@ function renderCal() {
     return { trip, ti, color, textColor, start, end };
   }).filter(Boolean);
 
-  // Filter to trips that overlap this month
-  const visible = tripMeta.filter(m => m.start <= monthEnd && m.end >= monthStart);
+  // Filter to trips that overlap this month, sort by start date (earliest first)
+  const visible = tripMeta
+    .filter(m => m.start <= monthEnd && m.end >= monthStart)
+    .sort((a, b) => a.start - b.start);
 
   // Build event map: day number -> array of events
   const eventMap = {};
+  // Build extended event map including prev/next month overflow cells
+  // prevMonth days: negative keys (-firstDay+1 to 0)
+  // nextMonth days: daysInMonth+1 to daysInMonth+remaining
+  const prevYear = calMonth === 0 ? calYear - 1 : calYear;
+  const prevMonthIdx = calMonth === 0 ? 11 : calMonth - 1;
+  const nextYear = calMonth === 11 ? calYear + 1 : calYear;
+  const nextMonthIdx = calMonth === 11 ? 0 : calMonth + 1;
+
+  function dateToKey(date) {
+    const y = date.getFullYear(), mo = date.getMonth(), d = date.getDate();
+    if (y === calYear && mo === calMonth) return d;
+    if (y === prevYear && mo === prevMonthIdx) return d - daysInPrev - 1; // negative
+    if (y === nextYear && mo === nextMonthIdx) return daysInMonth + d;
+    return null;
+  }
+
   visible.forEach(m => {
-    // Clamp to this month
-    const s = Math.max(1, m.start.getMonth() === calMonth && m.start.getFullYear() === calYear ? m.start.getDate() : 1);
-    const e = Math.min(daysInMonth, m.end.getMonth() === calMonth && m.end.getFullYear() === calYear ? m.end.getDate() : daysInMonth);
-    for (let d = s; d <= e; d++) {
-      if (!eventMap[d]) eventMap[d] = [];
-      const isStart = d === s;
-      const isEnd = d === e;
-      eventMap[d].push({ ...m, isStart, isEnd, spanStart: s, spanEnd: e });
+    const startKey = dateToKey(m.start);
+    const endKey = dateToKey(m.end);
+    if (startKey === null && endKey === null) return;
+    const s = startKey !== null ? startKey : -(daysInPrev);
+    const e = endKey !== null ? endKey : daysInMonth + 6;
+    // Include prev month cells (negative keys) and next month cells
+    const minKey = -(firstDay);
+    const maxKey = daysInMonth + 6;
+    for (let dk = Math.max(s, minKey); dk <= Math.min(e, maxKey); dk++) {
+      if (!eventMap[dk]) eventMap[dk] = [];
+      const isStart = dk === s;
+      const isEnd = dk === e;
+      const isOtherMonth = dk < 1 || dk > daysInMonth;
+      eventMap[dk].push({ ...m, isStart, isEnd, spanStart: s, spanEnd: e, isOtherMonth });
     }
   });
 
@@ -1996,7 +2026,27 @@ function renderCal() {
 
   let cell = 0;
   for (let i = 0; i < firstDay; i++, cell++) {
-    html += `<div class="cal-day other-month"><div class="cal-day-num">${daysInPrev - firstDay + 1 + i}</div></div>`;
+    const dk = i - firstDay + 1; // negative key
+    const d = daysInPrev - firstDay + 1 + i;
+    const pevents = eventMap[dk] || [];
+    let pevHtml = pevents.slice(0,3).map(({trip, ti: tripIdx, color, isStart, isEnd, spanStart, spanEnd}) => {
+      const lum = parseInt(color.slice(1),16); const r=(lum>>16)&255,g=(lum>>8)&255,b=lum&255;
+      const bright = (r*299+g*587+b*114)/1000;
+      const txtColor = bright > 160 ? '#1a1a1a' : '#ffffff';
+      const ml = isStart ? '0' : '-1px'; const mr = isEnd ? '0' : '-1px';
+      const bl = isStart ? '3px' : '0'; const er = isEnd ? '3px' : '0';
+      const borderRadius = `${bl} ${er} ${er} ${bl}`;
+      const evTheme = trip.category ? CATEGORY_THEME[trip.category] : null;
+      const emoji = evTheme ? evTheme.emoji : '📌';
+      const col2 = cell % 7;
+      const cellsToRowEnd = 7 - col2;
+      const cellsInSpan = Math.min(spanEnd - dk + 1, cellsToRowEnd);
+      const showLabel = isStart;
+      const labelStyle = showLabel ? `position:absolute;left:4px;top:0;pointer-events:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:calc(${cellsInSpan*100}% + ${(cellsInSpan-1)}px - 4px);z-index:3;line-height:22px;opacity:0.5` : 'display:none';
+      const labelEl = `<span style="${labelStyle}">${showLabel ? emoji+' '+esc(trip.name) : ''}</span>`;
+      return `<div class="cal-event" style="background:${color};color:${txtColor};border-radius:${borderRadius};margin:0 ${mr} 2px ${ml};position:relative;overflow:visible;opacity:0.35" onclick="event.stopPropagation();openCalPopup(${tripIdx})">${labelEl}</div>`;
+    }).join('');
+    html += `<div class="cal-day other-month"><div class="cal-day-num">${d}</div>${pevHtml}</div>`;
   }
   for (let d = 1; d <= daysInMonth; d++, cell++) {
     const isToday = TODAY.getDate() === d && TODAY.getMonth() === calMonth && TODAY.getFullYear() === calYear;
@@ -2029,8 +2079,27 @@ function renderCal() {
     html += `<div class="cal-day${isToday?' today':''}"><div class="cal-day-num">${d}</div>${evHtml}</div>`;
   }
   const remaining = (7 - (cell % 7)) % 7;
-  for (let d = 1; d <= remaining; d++) {
-    html += `<div class="cal-day other-month"><div class="cal-day-num">${d}</div></div>`;
+  for (let d = 1; d <= remaining; d++, cell++) {
+    const dk = daysInMonth + d;
+    const nevents = eventMap[dk] || [];
+    let nevHtml = nevents.slice(0,3).map(({trip, ti: tripIdx, color, isStart, isEnd, spanStart, spanEnd}) => {
+      const lum = parseInt(color.slice(1),16); const r=(lum>>16)&255,g=(lum>>8)&255,b=lum&255;
+      const bright = (r*299+g*587+b*114)/1000;
+      const txtColor = bright > 160 ? '#1a1a1a' : '#ffffff';
+      const ml = isStart ? '0' : '-1px'; const mr = isEnd ? '0' : '-1px';
+      const bl = isStart ? '3px' : '0'; const er = isEnd ? '3px' : '0';
+      const borderRadius = `${bl} ${er} ${er} ${bl}`;
+      const evTheme = trip.category ? CATEGORY_THEME[trip.category] : null;
+      const emoji = evTheme ? evTheme.emoji : '📌';
+      const col2 = cell % 7;
+      const cellsToRowEnd = 7 - col2;
+      const cellsInSpan = Math.min(spanEnd - dk + 1, cellsToRowEnd);
+      const showLabel = isStart;
+      const labelStyle = showLabel ? `position:absolute;left:4px;top:0;pointer-events:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:calc(${cellsInSpan*100}% + ${(cellsInSpan-1)}px - 4px);z-index:3;line-height:22px;opacity:0.5` : 'display:none';
+      const labelEl = `<span style="${labelStyle}">${showLabel ? emoji+' '+esc(trip.name) : ''}</span>`;
+      return `<div class="cal-event" style="background:${color};color:${txtColor};border-radius:${borderRadius};margin:0 ${mr} 2px ${ml};position:relative;overflow:visible;opacity:0.35" onclick="event.stopPropagation();openCalPopup(${tripIdx})">${labelEl}</div>`;
+    }).join('');
+    html += `<div class="cal-day other-month"><div class="cal-day-num">${d}</div>${nevHtml}</div>`;
   }
   html += '</div>';
   document.getElementById('calGrid').innerHTML = html;
