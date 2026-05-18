@@ -1269,6 +1269,14 @@ function openMobileItemEdit(ti, ii) {
     <div class="mobile-item-field">
       <label>Notes</label>
       <input id="mif-notes" value="${esc(item.notes||'')}" placeholder="notes…" oninput="mobileItemChange('notes',this.value)">
+    </div>
+    <div class="mobile-item-field">
+      <label>Link URL</label>
+      <input id="mif-linkUrl" type="url" value="${esc(item.linkUrl||'')}" placeholder="https://…" oninput="mobileItemChange('linkUrl',this.value)">
+    </div>
+    <div class="mobile-item-field">
+      <label>Link Text</label>
+      <input id="mif-linkText" value="${esc(item.linkText||'')}" placeholder="e.g. View booking" oninput="mobileItemChange('linkText',this.value)">
     </div>`;
 
   document.getElementById('mobileItemModal').classList.add('open');
