@@ -138,6 +138,8 @@
   .mobile-item-field { padding: 10px 16px; border-bottom: 1px solid var(--border); }
   .mobile-item-field label { font-size: 11px; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 6px; }
   .mobile-item-field input, .mobile-item-field select { width: 100%; max-width: 100%; font-size: 16px; border: 1px solid var(--border-secondary); border-radius: var(--radius-md); padding: 8px 6px; background: var(--bg); color: var(--text); font-family: inherit; box-sizing: border-box; min-width: 0; }
+  .mobile-item-field select.s-green { background: #22c55e; color: #ffffff; border-color: #16a34a; }
+  .mobile-item-field select.s-red   { background: #ff4444; color: #ffffff; border-color: #cc0000; }
   .mobile-item-date-range { display: flex; align-items: center; gap: 8px; }
   .mobile-item-date-range input { flex: 1; }
   .item-name { font-size: 16px; font-weight: 700; color: var(--trip-color, var(--text)); text-transform: uppercase; letter-spacing: 0.03em; }
@@ -927,7 +929,7 @@ function tripHTML(ti) {
           ${STATUSES.map(s=>`<option value="${s}"${s===item.status?' selected':''}>${s}</option>`).join('')}
         </select>
         <!-- Notes: always shown on desktop, only if has content on mobile -->
-        <div class="item-notes-cell${item.notes || item.details && detailsOptsFor(item.name) === null ? ' has-notes' : ''}">${notesCell(item,ti,ii)}</div>
+        <div class="item-notes-cell${item.notes || item.linkUrl ? ' has-notes' : ''}">${notesCell(item,ti,ii)}</div>
       </div>`;
     });
     h += '</div></div>'; // close trip-items and trip-items-wrap
