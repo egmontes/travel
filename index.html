@@ -959,7 +959,7 @@ function tripHTML(ti) {
 
     h += `<div class="col-header"><span class="col-label">Activity</span><span class="col-label">Details</span><span class="col-label">Status</span><span class="col-label">Notes/Link</span></div>
     <div class="mobile-activities-label">📋 Activities</div>
-    <div class="trip-items-wrap" id="tiw-${ti}"><div class="trip-items" onscroll="updateTripItemsFade(this)">`;
+    <div class="trip-items-wrap at-bottom at-top" id="tiw-${ti}"><div class="trip-items" onscroll="updateTripItemsFade(this)">`;
     sortedItems.forEach(({item, ii}) => {
       h += `<div class="item-row">
         <!-- Desktop: name cell -->
@@ -1454,8 +1454,9 @@ function handleMobileItemModalClick(e) {
 function updateTripItemsFade(el) {
   const wrap = el.closest('.trip-items-wrap');
   if (!wrap) return;
-  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
-  const atTop = el.scrollTop <= 4;
+  const scrollable = el.scrollHeight > el.clientHeight + 4;
+  const atBottom = !scrollable || el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
+  const atTop = !scrollable || el.scrollTop <= 4;
   wrap.classList.toggle('at-bottom', atBottom);
   wrap.classList.toggle('at-top', atTop);
 }
