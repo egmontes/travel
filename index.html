@@ -183,7 +183,10 @@
   .modal-footer { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-top: 1px solid var(--trip-border, var(--border)); gap: 8px; }
   .modal-footer-right { display: flex; gap: 8px; }
 
-  .add-trip-area { margin-top: 0.75rem; margin-bottom: 0.5rem; }
+  .add-trip-area { display: none; }
+  .fab-add-trip { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%; background: var(--text); color: var(--bg); border: none; font-size: 28px; line-height: 1; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.25); z-index: 200; display: flex; align-items: center; justify-content: center; transition: transform 0.15s, box-shadow 0.15s; }
+  .fab-add-trip:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+  .fab-add-trip:active { transform: scale(0.95); }
   .add-trip-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 12px; border: 0.5px dashed var(--border-secondary); border-radius: var(--radius-lg); background: transparent; color: var(--text-secondary); font-size: 14px; cursor: pointer; font-family: inherit; transition: background 0.15s; }
   .add-trip-btn:hover { background: var(--bg-secondary); color: var(--text); }
 
@@ -359,6 +362,8 @@
     </div>
   </div>
 </div>
+
+<button class="fab-add-trip" onclick="openAddTrip()" title="Add trip">+</button>
 
 <!-- Trip modal -->
 <div class="modal-backdrop" id="tripModal" onclick="handleBackdropClick(event,'tripModal')">
