@@ -1794,13 +1794,13 @@ async function saveTrip() {
   if (window._editDraft.startDate) {
     window._editDraft.month = monthFromDate(window._editDraft.startDate);
   }
-  console.log('saveTrip - locationDisplay:', window._editDraft.locationDisplay, 'location:', window._editDraft.location?.slice(0,40));
+  const cat = window._editDraft.category;
   if (editingIdx===null) trips.push(JSON.parse(JSON.stringify(window._editDraft)));
   else trips[editingIdx] = JSON.parse(JSON.stringify(window._editDraft));
   closeModal('tripModal');
   updateStats(); updateTabCounts(); renderAll();
   await persist();
-  showToast(editingIdx===null ? 'Trip added' : 'Trip updated');
+  showToast((editingIdx===null ? 'Trip added' : 'Trip updated') + (cat ? ' · ' + cat : ''));
 }
 
 async function deleteTrip() {
