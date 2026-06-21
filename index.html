@@ -2257,7 +2257,11 @@ async function openMapModal() {
       const parent = clusterGroup.getVisibleParent(marker);
       const isSpiderfied = !parent || parent === marker;
       if (isSpiderfied) {
-        _map.flyTo(trip._latlng, 10, { duration: 0.8, animate: true });
+        // Only zoom in, never zoom out
+        const currentZoom = _map.getZoom();
+        if (currentZoom < 10) {
+          _map.flyTo(trip._latlng, 10, { duration: 0.8, animate: true });
+        }
       }
     });
     clusterGroup.addLayer(marker);
