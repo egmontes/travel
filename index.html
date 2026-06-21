@@ -1501,6 +1501,7 @@ function openEdit(e,ti) {
   if (window._editDraft.locationDisplay === undefined) window._editDraft.locationDisplay = null;
   if (window._editDraft.link === undefined) window._editDraft.link = '';
   if (window._editDraft.linkText === undefined) window._editDraft.linkText = '';
+  if (window._editDraft.notes === undefined) window._editDraft.notes = '';
   document.getElementById('tripModalTitle').textContent = 'Edit trip';
   document.getElementById('delTripBtn').style.display = '';
   renderTripBody();
@@ -1581,6 +1582,10 @@ function renderTripBody() {
     <div class="trip-fields-grid">
       <div class="field-group"><label class="field-label">Link URL</label><input class="field-input" type="url" value="${esc(trip.link||'')}" oninput="window._editDraft.link=this.value" placeholder="https://…"></div>
       <div class="field-group"><label class="field-label">Link Text <span style="font-size:11px;font-weight:400;color:var(--text-tertiary)">(shown on card)</span></label><input class="field-input" value="${esc(trip.linkText||'')}" oninput="window._editDraft.linkText=this.value" placeholder="e.g. View itinerary"></div>
+    </div>
+    <div class="field-group" style="margin-top:4px">
+      <label class="field-label">Notes</label>
+      <textarea class="field-input" rows="3" style="resize:vertical;font-family:inherit" oninput="window._editDraft.notes=this.value" placeholder="Any notes about this trip…">${esc(trip.notes||'')}</textarea>
     </div>
     <p class="section-label">Activities</p>
     <div class="items-table-wrap">
