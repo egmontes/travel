@@ -614,12 +614,20 @@ async function connect(cfg) {
   }
 }
 
+let _pendingSave = false;
+
 async function persist() {
   if (IS_LOCAL) {
     try { localStorage.setItem('trips_local', JSON.stringify(trips)); } catch(e) {}
     return;
   }
-  if (!db || !_fbDoc || !_fbSetDoc) return;
+  if (!db || !_fbDoc || !_fbSetDoc) {
+    // Firebase not ready yet — mark pending and retry when connected
+    _pendingSave = true;
+    setSyncState('syncing', 'Waiting to save…');
+    return;
+  }
+  _pendingSave = false;
   writing = true;
   setSyncState('syncing','Saving…');
   try {
@@ -627,8 +635,9 @@ async function persist() {
     const t = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
     setSyncState('connected','Connected · saved at ' + t);
   } catch(e) {
-    setSyncState('error','Save failed');
+    setSyncState('error','Save failed · tap to retry');
     showToast('Save failed: ' + e.message);
+    console.error('persist error:', e);
   } finally { writing = false; }
 }
 
