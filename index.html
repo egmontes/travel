@@ -1035,6 +1035,16 @@ function tripHTML(ti) {
             <input class="add-req-input" type="date" id="add-req-date-end-${ti}" style="flex:1;min-width:0">
           </div>
         </div>
+        <div style="display:flex;gap:8px">
+          <div style="flex:1;min-width:0">
+            <div class="add-req-section">Link URL</div>
+            <input class="add-req-input" type="url" id="add-req-linkurl-${ti}" placeholder="https://…" style="width:100%">
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="add-req-section">Link Text</div>
+            <input class="add-req-input" id="add-req-linktext-${ti}" placeholder="e.g. View booking" style="width:100%">
+          </div>
+        </div>
       </div>
       <div class="add-req-actions">
         <button class="add-req-btn" onclick="cancelAddReq(${ti})">Cancel</button>
@@ -1832,6 +1842,10 @@ function toggleAddReq(e, ti) {
     if (statusSel) statusSel.value = 'Not Booked';
     const notesInp = document.getElementById('add-req-notes-' + ti);
     if (notesInp) notesInp.value = '';
+    const linkUrlInp = document.getElementById('add-req-linkurl-' + ti);
+    if (linkUrlInp) linkUrlInp.value = '';
+    const linkTextInp = document.getElementById('add-req-linktext-' + ti);
+    if (linkTextInp) linkTextInp.value = '';
     // Scroll the form into view after a short delay to let it render
     setTimeout(() => {
       const rowEl = document.getElementById('add-req-row-' + ti);
@@ -1858,7 +1872,9 @@ async function commitAddReq(ti) {
   const status    = (document.getElementById('add-req-status-' + ti) || {}).value || 'Not Booked';
   const details   = (document.getElementById('add-req-details-' + ti) || {}).value || '';
   const notes     = (document.getElementById('add-req-notes-' + ti) || {}).value || '';
-  trips[ti].items.push({name, date:'', dateStart, dateEnd, status, details, notes});
+  const linkUrl   = (document.getElementById('add-req-linkurl-' + ti) || {}).value.trim() || '';
+  const linkText  = (document.getElementById('add-req-linktext-' + ti) || {}).value.trim() || '';
+  trips[ti].items.push({name, date:'', dateStart, dateEnd, status, details, notes, linkUrl, linkText});
   expanded[ti] = true;
   updateStats(); updateTabCounts(); renderAll();
   await persist();
