@@ -225,6 +225,10 @@
     .status-pill.notstarted{ background: #450a0a; color: #fca5a5; }
   }
 
+  /* List view */
+  .list-view-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+  .list-view-item:last-child { border-bottom: none; }
+
   /* Other category customizer */
   .other-custom-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 10px 12px; background: var(--bg-secondary); border-radius: var(--radius-md); border: 1px solid var(--border); }
   .emoji-input { font-size: 22px; width: 44px; text-align: center; border: 1px solid var(--border-secondary); border-radius: var(--radius-md); padding: 4px; background: var(--bg); cursor: text; }
@@ -336,6 +340,7 @@
         <button class="btn action-btn" onclick="collapseAll()">⊟</button>
         <button class="btn action-btn" onclick="openCalendar()">📅</button>
         <button class="btn action-btn" onclick="openMapModal()">🗺</button>
+        <button class="btn action-btn" onclick="openListView()">☰</button>
       </div>
       <div class="sync-bar" style="margin:0;min-height:auto">
         <div class="sync-dot" id="syncDot"></div>
@@ -372,6 +377,19 @@
         <div class="stats" id="stats-past"></div>
         <div class="trip-list" id="tripList-past"></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- List View Modal -->
+<div class="modal-backdrop" id="listModal" onclick="handleBackdropClick(event,'listModal')">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <span class="modal-title">All Trips</span>
+      <button class="modal-close" onclick="closeModal('listModal')">&#215;</button>
+    </div>
+    <div class="modal-body" style="padding:0;max-height:70vh;overflow-y:auto">
+      <div id="listViewContent"></div>
     </div>
   </div>
 </div>
@@ -1493,6 +1511,34 @@ function notesCell(item, ti, ii) {
 
 let _notesTi = null, _notesIi = null;
 
+function openListView() {
+  const sorted = [...trips].sort((a, b) => {
+    const da = parseDateStr(a.startDate || a.date);
+    const db = parseDateStr(b.startDate || b.date);
+    if (!da && !db) return 0;
+    if (!da) return 1;
+    if (!db) return -1;
+    return da - db;
+  });
+
+  const html = sorted.map(t => {
+    const theme = getCategoryTheme(t);
+    const emoji = theme ? theme.emoji : '📌';
+    const color = theme ? theme.text : 'var(--text)';
+    const dateStr = t.startDate ? formatDateDisplay(t.startDate) : (t.date || '');
+    const loc = locationDisplayStr(t);
+    return `<div class="list-view-item">
+      <span style="font-size:16px;flex-shrink:0">${emoji}</span>
+      <span style="font-size:14px;font-weight:700;color:${color};flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:uppercase;letter-spacing:0.03em">${esc(t.name)}</span>
+      <span style="font-size:12px;color:var(--text-tertiary);flex-shrink:0;text-align:right">${dateStr}${loc ? ' · ' + esc(loc) : ''}</span>
+    </div>`;
+  }).join('') || '<div style="padding:24px;text-align:center;color:var(--text-tertiary)">No trips yet</div>';
+
+  document.getElementById('listViewContent').innerHTML = html;
+  document.getElementById('listModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
 function toggleOtherCustom(val) {
   const row = document.getElementById('other-custom-row');
   if (row) row.style.display = val === 'Custom' ? 'flex' : 'none';
@@ -1965,7 +2011,7 @@ function showToast(msg) {
 // expose to inline handlers
 Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, updateFade, detailsOptsFor, detailsCell, modalDetailsCell, openEdit, openAddTrip, statusColorClass,
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
-  closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab, openCalendar, calShift, openMapModal, openCalPopup, closeCalPopup, toggleOtherCustom, selectOtherColor,
+  closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab, openCalendar, calShift, openMapModal, openCalPopup, closeCalPopup, openListView, toggleOtherCustom, selectOtherColor,
   toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey,
   refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell, notesCell, detailsInput, modalDetailsInputChange, addDetailsInput, closeDetailsDropdown, locationInput, selectLocation, closeLocationDropdown, openMobileItemEdit, closeMobileItemModal, handleMobileItemModalClick, mobileItemChange, updateTripItemsFade, openNotesModal, closeNotesModal, saveNotesModal });
 
