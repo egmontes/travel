@@ -312,6 +312,8 @@
   }
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 </head>
 <body>
 <div class="page">
@@ -2209,7 +2211,13 @@ async function openMapModal() {
     await new Promise((res, rej) => {
       const s = document.createElement('script');
       s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      s.onload = res; s.onerror = rej;
+      s.onload = () => {
+        const s2 = document.createElement('script');
+        s2.src = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+        s2.onload = res; s2.onerror = rej;
+        document.head.appendChild(s2);
+      };
+      s.onerror = rej;
       document.head.appendChild(s);
     });
   }
@@ -2221,6 +2229,7 @@ async function openMapModal() {
 
   _map = L.map(container, { zoomControl: true, attributionControl: false });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(_map);
+  const clusterGroup = L.markerClusterGroup({ maxClusterRadius: 50 });
 
   const bounds = L.latLngBounds();
   pinned.forEach(trip => {
@@ -2237,14 +2246,16 @@ async function openMapModal() {
       popupAnchor: [0, -30],
     });
 
-    const marker = L.marker(trip._latlng, { icon }).addTo(_map);
+    const marker = L.marker(trip._latlng, { icon });
     marker.bindPopup(`<strong>${esc(trip.name)}</strong><br><small>${esc(display)}</small>`);
     marker.on('click', () => {
       _map.flyTo(trip._latlng, 10, { duration: 0.8 });
     });
+    clusterGroup.addLayer(marker);
     bounds.extend(trip._latlng);
   });
 
+  clusterGroup.addTo(_map);
   _map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
 }
 // ── Calendar trip popup ──
