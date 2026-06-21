@@ -206,6 +206,11 @@
   .month-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
   .tab-nav-wrap { position: relative; padding: 0; margin-bottom: 0; }
+  .filter-pills-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 6px 4px 4px; white-space: nowrap; }
+  .filter-pills-wrap::-webkit-scrollbar { display: none; }
+  .filter-pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1.5px solid var(--border); background: var(--bg); color: var(--text-secondary); margin-right: 6px; transition: all 0.15s; user-select: none; }
+  .filter-pill:last-child { margin-right: 0; }
+  .filter-pill.active { border-color: var(--text); background: var(--text); color: var(--bg); }
   .swipe-hint { display: none; font-size: 11px; color: var(--text-tertiary); text-align: center; margin-top: 6px; letter-spacing: 0.02em; }
 
   /* Trip status indicators */
@@ -359,6 +364,7 @@
     </nav>
     <div class="swipe-hint" id="swipeHint">&#8592; swipe to switch tabs &#8594;</div>
   </div>
+  <div class="filter-pills-wrap" id="filterPills"></div>
 
   </div><!-- /sticky-header -->
   <div class="slider-viewport" id="sliderViewport">
@@ -633,13 +639,13 @@ async function connect(cfg) {
     }
     // ── End migration ──
 
-    updateStats(); updateTabCounts(); renderAll();
+    updateStats(); updateTabCounts(); renderAll(); renderFilterPills();
     setSyncState('connected','Connected · syncing live');
     if (unsub) unsub();
     unsub = onSnapshot(ref, s => {
       if (writing) return;
       const r = s.data()?.trips;
-      if (r) { trips = r; updateStats(); updateTabCounts(); renderAll(); }
+      if (r) { trips = r; updateStats(); updateTabCounts(); renderAll(); renderFilterPills(); }
     });
     showToast('Connected to Firebase');
     document.getElementById('setupBanner').innerHTML = '';
@@ -1539,6 +1545,47 @@ function openListView() {
   document.body.style.overflow = 'hidden';
 }
 
+// ── Category filter ──
+let activeFilters = new Set(); // empty = show all
+
+function renderFilterPills() {
+  const cats = Object.entries(CATEGORY_THEME);
+  // Include Custom if any trips use it
+  const hasTBD = trips.some(t => !t.category);
+  const container = document.getElementById('filterPills');
+  if (!container) return;
+
+  let html = `<span class="filter-pill${activeFilters.size===0?' active':''}" onclick="toggleFilter(null)">All</span>`;
+  cats.forEach(([cat, theme]) => {
+    const hasAny = trips.some(t => t.category === cat);
+    if (!hasAny) return;
+    const isActive = activeFilters.has(cat);
+    html += `<span class="filter-pill${isActive?' active':''}" onclick="toggleFilter('${cat}')" style="${isActive?'':'border-color:'+theme.border+';color:'+theme.text}">${theme.emoji} ${cat}</span>`;
+  });
+  if (hasTBD) {
+    const isActive = activeFilters.has('');
+    html += `<span class="filter-pill${isActive?' active':''}" onclick="toggleFilter('')">📌 TBD</span>`;
+  }
+  container.innerHTML = html;
+}
+
+function toggleFilter(cat) {
+  if (cat === null) {
+    activeFilters.clear();
+  } else {
+    if (activeFilters.has(cat)) activeFilters.delete(cat);
+    else activeFilters.add(cat);
+  }
+  renderFilterPills();
+  renderAll();
+}
+
+function passesFilter(trip) {
+  if (activeFilters.size === 0) return true;
+  const cat = trip.category || '';
+  return activeFilters.has(cat);
+}
+
 function toggleOtherCustom(val) {
   const row = document.getElementById('other-custom-row');
   if (row) row.style.display = val === 'Custom' ? 'flex' : 'none';
@@ -2011,7 +2058,7 @@ function showToast(msg) {
 // expose to inline handlers
 Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, updateFade, detailsOptsFor, detailsCell, modalDetailsCell, openEdit, openAddTrip, statusColorClass,
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
-  closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab, openCalendar, calShift, openMapModal, openCalPopup, closeCalPopup, openListView, toggleOtherCustom, selectOtherColor,
+  closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab, openCalendar, calShift, openMapModal, openCalPopup, closeCalPopup, openListView, toggleFilter, toggleOtherCustom, selectOtherColor,
   toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey,
   refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell, notesCell, detailsInput, modalDetailsInputChange, addDetailsInput, closeDetailsDropdown, locationInput, selectLocation, closeLocationDropdown, openMobileItemEdit, closeMobileItemModal, handleMobileItemModalClick, mobileItemChange, updateTripItemsFade, openNotesModal, closeNotesModal, saveNotesModal });
 
@@ -2617,7 +2664,7 @@ document.addEventListener('focusout', e => {
 }, true);
 
 // ── Init ──
-updateStats(); updateTabCounts(); renderAll();
+updateStats(); updateTabCounts(); renderAll(); renderFilterPills();
 setTimeout(() => window.attachSheetListeners?.(), 200);
 
 const HARDCODED_CFG = {
