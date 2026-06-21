@@ -2247,7 +2247,11 @@ async function openMapModal() {
     });
 
     const marker = L.marker(trip._latlng, { icon });
-    marker.bindPopup(`<strong>${esc(trip.name)}</strong><br><small>${esc(display)}</small>`);
+    const dateStr = trip.startDate ? (() => {
+      const d = new Date(trip.startDate + 'T00:00:00');
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    })() : (trip.date || '');
+    marker.bindPopup(`<strong>${esc(trip.name)}</strong>${dateStr ? `<br><small>📅 ${dateStr}</small>` : ''}<br><small>📍 ${esc(display)}</small>`);
     marker.on('click', (e) => {
       // Only fly if not currently spiderfied (check if marker is in a spiderfy state)
       const parent = clusterGroup.getVisibleParent(marker);
