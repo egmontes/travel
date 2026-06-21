@@ -225,6 +225,14 @@
     .status-pill.notstarted{ background: #450a0a; color: #fca5a5; }
   }
 
+  /* Other category customizer */
+  .other-custom-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 10px 12px; background: var(--bg-secondary); border-radius: var(--radius-md); border: 1px solid var(--border); }
+  .emoji-input { font-size: 22px; width: 44px; text-align: center; border: 1px solid var(--border-secondary); border-radius: var(--radius-md); padding: 4px; background: var(--bg); cursor: text; }
+  .color-swatch-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .color-swatch { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: transform 0.1s, box-shadow 0.1s; outline: 2px solid transparent; outline-offset: 2px; }
+  .color-swatch:hover { transform: scale(1.15); }
+  .color-swatch.selected { outline-color: var(--text); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text); }
+
   /* Notes/Link modal */
   .notes-modal-backdrop { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:950;align-items:center;justify-content:center; }
   .notes-modal-backdrop.open { display:flex; }
@@ -870,8 +878,23 @@ const CATEGORY_THEME = {
   'Holiday':  { emoji: '🎄', bg: 'rgba(99,153,34,0.08)',   border: 'rgba(99,153,34,0.25)',  text: '#3b6d11', color: '#6aaa1a' },
   'Work':     { emoji: '💼', bg: 'rgba(55,138,221,0.08)',  border: 'rgba(55,138,221,0.25)', text: '#185fa5', color: '#3b8ae0' },
   'Party':    { emoji: '🎉', bg: 'rgba(186,117,23,0.08)',  border: 'rgba(186,117,23,0.25)', text: '#854f0b', color: '#e09020' },
-  'Other':    { emoji: '📌', bg: 'rgba(95,94,90,0.08)',    border: 'rgba(95,94,90,0.2)',    text: '#5f5e5a', color: '#7a7977' },
+  'Custom':    { emoji: '📌', bg: 'rgba(95,94,90,0.08)',    border: 'rgba(95,94,90,0.2)',    text: '#5f5e5a', color: '#7a7977' },
 };
+
+function getCategoryTheme(trip) {
+  const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
+  if (!theme || trip.category !== 'Custom') return theme;
+  // Override with custom emoji/color for Other
+  const col = trip.customColor || '#7a7977';
+  return {
+    ...theme,
+    emoji: trip.customEmoji || '📌',
+    color: col,
+    text: col,
+    border: col + '66',
+    bg: col + '15',
+  };
+}
 
 function tripHTML(ti) {
   const trip = trips[ti], past = isPast(trip), open = !!expanded[ti];
@@ -879,7 +902,7 @@ function tripHTML(ti) {
   const pct = total ? Math.round(done/total*100) : 0;
   const st = tripStatus(ti);
   const displayDate = trip.startDate ? formatDateDisplay(trip.startDate) : (trip.date||'');
-  const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
+  const theme = getCategoryTheme(trip);
   let h = `<div class="trip-card${past?' past-trip':''}" id="tc-${ti}" style="${
     open
       ? (theme
@@ -1459,6 +1482,18 @@ function notesCell(item, ti, ii) {
 
 let _notesTi = null, _notesIi = null;
 
+function toggleOtherCustom(val) {
+  const row = document.getElementById('other-custom-row');
+  if (row) row.style.display = val === 'Custom' ? 'flex' : 'none';
+}
+
+function selectOtherColor(color) {
+  window._editDraft.customColor = color;
+  document.querySelectorAll('.color-swatch').forEach(s => {
+    s.classList.toggle('selected', s.dataset.color === color);
+  });
+}
+
 function openNotesModal(ti, ii) {
   _notesTi = ti; _notesIi = ii;
   const item = trips[ti].items[ii];
@@ -1530,6 +1565,8 @@ function openEdit(e,ti) {
   if (window._editDraft.link === undefined) window._editDraft.link = '';
   if (window._editDraft.linkText === undefined) window._editDraft.linkText = '';
   if (window._editDraft.notes === undefined) window._editDraft.notes = '';
+  if (window._editDraft.customEmoji === undefined) window._editDraft.customEmoji = '📌';
+  if (window._editDraft.customColor === undefined) window._editDraft.customColor = '#7a7977';
   document.getElementById('tripModalTitle').textContent = 'Edit trip';
   document.getElementById('delTripBtn').style.display = '';
   renderTripBody();
@@ -1587,10 +1624,22 @@ function renderTripBody() {
     <p class="section-label">Trip details</p>
     <div class="trip-fields-grid">
       <div class="field-group"><label class="field-label">Category</label>
-        <select class="field-input" onchange="window._editDraft.category=this.value">
+        <select class="field-input" id="category-select" onchange="window._editDraft.category=this.value;toggleOtherCustom(this.value)">
           <option value="">— Select —</option>
-          ${[['Wedding','💍'],['Vacation','🌴'],['Holiday','🎄'],['Work','💼'],['Party','🎉'],['Other','📌']].map(([c,e])=>`<option value="${c}"${trip.category===c?' selected':''}>${e} ${c}</option>`).join('')}
+          ${[['Wedding','💍'],['Vacation','🌴'],['Holiday','🎄'],['Work','💼'],['Party','🎉'],['Custom','📌']].map(([c,e])=>`<option value="${c}"${trip.category===c?' selected':''}>${e} ${c}</option>`).join('')}
         </select>
+        <div class="other-custom-row" id="other-custom-row" style="display:${trip.category==='Custom'?'flex':'none'}">
+          <div>
+            <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Emoji</div>
+            <input class="emoji-input" id="other-emoji" maxlength="2" value="${esc(trip.customEmoji||'📌')}" oninput="window._editDraft.customEmoji=this.value.trim()||'📌'">
+          </div>
+          <div style="flex:1">
+            <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Color</div>
+            <div class="color-swatch-row" id="color-swatches">
+              ${['#e05c7a','#e07c20','#d4a017','#6aaa1a','#1dab82','#3b8ae0','#7c5cbf','#d44e4e','#5e8c61','#7a7977'].map(c=>`<div class="color-swatch${(trip.customColor||'#7a7977')===c?' selected':''}" style="background:${c}" data-color="${c}" onclick="selectOtherColor('${c}')"></div>`).join('')}
+            </div>
+          </div>
+        </div>
       </div>
       <div class="field-group"><label class="field-label">Trip name</label><input class="field-input" value="${esc(trip.name)}" oninput="window._editDraft.name=this.value" placeholder="e.g. Ben Wedding"></div>
     </div>
@@ -1899,7 +1948,7 @@ function showToast(msg) {
 // expose to inline handlers
 Object.assign(window, { handleHeaderClick, onStatusChange, onDetailChange, updateFade, detailsOptsFor, detailsCell, modalDetailsCell, openEdit, openAddTrip, statusColorClass,
   addItem, removeItem, saveTrip, deleteTrip, openSettings, saveSettings,
-  closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab, openCalendar, calShift, openMapModal, openCalPopup, closeCalPopup,
+  closeModal, handleBackdropClick, expandAll, collapseAll, exportCSV, setTab, openCalendar, calShift, openMapModal, openCalPopup, closeCalPopup, toggleOtherCustom, selectOtherColor,
   toggleAddReq, cancelAddReq, commitAddReq, handleAddReqKey,
   refreshAddReqFields, getAddReqField, refreshAddItemDetails, onNotesChange, handleAddItemType, handleModalItemType, modalItemNameCell, notesCell, detailsInput, modalDetailsInputChange, addDetailsInput, closeDetailsDropdown, locationInput, selectLocation, closeLocationDropdown, openMobileItemEdit, closeMobileItemModal, handleMobileItemModalClick, mobileItemChange, updateTripItemsFade, openNotesModal, closeNotesModal, saveNotesModal });
 
@@ -2011,7 +2060,7 @@ function renderCal() {
   // Assign each trip a color and find which overlap this month
   let colorIdx = 0;
   const tripMeta = trips.map((trip, ti) => {
-    const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
+    const theme = getCategoryTheme(trip);
     const color = theme ? theme.color : '#9e9d9b';
     const textColor = color;
     // Collect all dates: trip date + all activity start/end dates
@@ -2162,7 +2211,7 @@ function renderCal() {
   const legendItems = [];
   visible.forEach(({trip, color}) => {
     const cat = trip.category || 'TBD';
-    const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
+    const theme = getCategoryTheme(trip);
     const emoji = theme ? theme.emoji : '📌';
     const key = cat;
     if (!seenCats.has(key)) {
@@ -2233,7 +2282,7 @@ async function openMapModal() {
 
   const bounds = L.latLngBounds();
   pinned.forEach(trip => {
-    const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
+    const theme = getCategoryTheme(trip);
     const color = theme ? theme.color : '#9e9d9b';
     const display = locationDisplayStr(trip) || trip.name;
 
@@ -2291,7 +2340,7 @@ async function openMapModal() {
 function openCalPopup(ti) {
   const trip = trips[ti];
   if (!trip) return;
-  const theme = trip.category ? CATEGORY_THEME[trip.category] : null;
+  const theme = getCategoryTheme(trip);
   const color = theme ? theme.text : '#5f5e5a';
   const bg = theme ? theme.bg : 'var(--bg-secondary)';
   const border = theme ? theme.border : 'var(--border)';
