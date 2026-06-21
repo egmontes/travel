@@ -904,6 +904,7 @@ function tripHTML(ti) {
           ${trip.location ? `<span class="trip-location-label" style="margin-top:0">&#128205; ${esc(locationDisplayStr(trip))}</span>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          ${(()=>{ const rs=rsvpStatus(trip); return rs ? `<span class="rsvp-badge rsvp-${rs}">${rs==='done'?'✓ RSVP':'! RSVP'}</span>` : ''; })()} 
           <div class="progress-wrap">
             <div class="progress-bar"><div class="progress-fill" id="pf-${ti}" style="width:${pct}%;background:${st.color}"></div></div>
             <span class="progress-text" id="pt-${ti}">${done}/${total}</span>
@@ -1497,8 +1498,17 @@ function onNotesChange(ti, ii, val) {
 function onStatusChange(ti,ii,val) {
   trips[ti].items[ii].status = val;
   updateStats();
-  const fill = document.getElementById('pf-'+ti), txt = document.getElementById('pt-'+ti);
-  if (fill) { const [d,t] = progressFor(ti); fill.style.width=(t?Math.round(d/t*100):0)+'%'; if(txt) txt.textContent=d+'/'+t; }
+  // If this is an RSVP item, re-render the whole card so the badge updates
+  const isRsvp = trips[ti].items[ii].name && trips[ti].items[ii].name.includes('RSVP');
+  if (isRsvp) {
+    TABS.forEach(tab => {
+      const el = document.querySelector('#tripList-' + tab + ' #tc-' + ti);
+      if (el) el.outerHTML = tripHTML(ti);
+    });
+  } else {
+    const fill = document.getElementById('pf-'+ti), txt = document.getElementById('pt-'+ti);
+    if (fill) { const [d,t] = progressFor(ti); fill.style.width=(t?Math.round(d/t*100):0)+'%'; if(txt) txt.textContent=d+'/'+t; }
+  }
   persist();
   showToast('Saved');
 }
