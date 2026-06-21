@@ -2248,8 +2248,13 @@ async function openMapModal() {
 
     const marker = L.marker(trip._latlng, { icon });
     marker.bindPopup(`<strong>${esc(trip.name)}</strong><br><small>${esc(display)}</small>`);
-    marker.on('click', () => {
-      _map.flyTo(trip._latlng, 10, { duration: 0.8 });
+    marker.on('click', (e) => {
+      // Only fly if not currently spiderfied (check if marker is in a spiderfy state)
+      const parent = clusterGroup.getVisibleParent(marker);
+      const isSpiderfied = !parent || parent === marker;
+      if (isSpiderfied) {
+        _map.flyTo(trip._latlng, 10, { duration: 0.8, animate: true });
+      }
     });
     clusterGroup.addLayer(marker);
     bounds.extend(trip._latlng);
