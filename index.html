@@ -1085,9 +1085,9 @@ function indicesFor(tab) {
   return trips.map((_,i) => i)
     .filter(i => {
       const past = isPast(trips[i]);
-      if (tab === 'upcoming') return !past;
-      if (tab === 'past') return past;
-      return true;
+      if (tab === 'upcoming') return !past && passesFilter(trips[i]);
+      if (tab === 'past') return past && passesFilter(trips[i]);
+      return passesFilter(trips[i]);
     })
     .sort((a,b) => {
       const da = parseDateStr(trips[a].startDate || trips[a].date);
@@ -2568,9 +2568,10 @@ document.addEventListener('touchmove', e => {
     if (e.touches.length !== 1) return;
     // Don't activate page swipe if a modal is open
     if (document.querySelector('.modal-backdrop.open')) return;
-    // Only activate swipe if touch starts in the slider area, not on sticky header
+    // Only activate swipe if touch starts in the slider area, not on sticky header or filter pills
     const stickyHeader = document.querySelector('.sticky-header');
     if (stickyHeader && stickyHeader.contains(e.target)) return;
+    if (e.target.closest('.filter-pills-wrap')) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     isDragging = false;
